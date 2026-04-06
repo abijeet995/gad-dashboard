@@ -806,7 +806,8 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     font-weight: bold;
     padding: 5px 6px;
     border: 1px solid #aaa;
-    text-align: center;
+    text-align: center !important;
+    vertical-align: middle !important;
     font-size: 10px;
     word-break: break-word;
     white-space: normal;
@@ -815,12 +816,19 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
   .ann-page table td {
     padding: 4px 6px;
     border: 1px solid #ccc;
-    vertical-align: top;
     word-break: break-word;
-    text-align: center;
   }
-  /* Short / code columns stay centre; long text columns go left */
-  .ann-page table td.text-left { text-align: left; }
+  /* Use !important to beat the global tbody td { vertical-align: top; text-align: left } rule */
+  .ann-page table tbody td {
+    vertical-align: middle !important;
+    text-align: center !important;
+    max-width: none !important;
+  }
+  /* Only RR detail text columns need left alignment */
+  .ann-page table tbody td.text-left {
+    text-align: left !important;
+    vertical-align: top !important;
+  }
   /* Give narrow columns a hint so browser doesn't over-expand them */
   .ann-page table .col-narrow { width: 4%; }
   .ann-page table .col-short  { width: 6%; }
@@ -2422,9 +2430,8 @@ function renderAnnexurePreview() {
     return;
   }
 
-  // Long-text keys that should be left-aligned
-  const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
-    'RRBefore','RRAfter','AkrutiStatus','RequisitionRemarks','RosterRemarks','DeptResponse']);
+  // Only genuinely long prose columns get left-aligned — everything else centres
+  const LEFT_ALIGN_KEYS = new Set(['RRBefore','RRAfter','DeptResponse']);
 
   // Width hint classes by column key
   const COL_CLASS = {
@@ -2549,9 +2556,8 @@ async function exportAnnexure() {
     const FS_FOOTER = annFontSize('ann-fs-footer',  8);
     const FS_PGNUM  = annFontSize('ann-fs-pagenum', 8);
 
-    // Left-align keys
-    const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
-      'RRBefore','RRAfter','AkrutiStatus','DeptResponse']);
+    // Left-align keys — only long prose columns
+    const LEFT_ALIGN_KEYS = new Set(['RRBefore','RRAfter','DeptResponse']);
 
     const border = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
     const borders = { top: border, bottom: border, left: border, right: border };
@@ -2831,8 +2837,7 @@ async function exportMultiAnnexure() {
     const colWidths = weights.map(w => Math.round(CONTENT_W * w / totalW));
     colWidths[colWidths.length-1] += CONTENT_W - colWidths.reduce((a,b)=>a+b,0);
 
-    const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
-      'RRBefore','RRAfter','AkrutiStatus','DeptResponse']);
+    const LEFT_ALIGN_KEYS = new Set(['RRBefore','RRAfter','DeptResponse']);
 
     const border    = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
     const borders   = { top:border, bottom:border, left:border, right:border };
