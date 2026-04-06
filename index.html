@@ -1311,6 +1311,37 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           </div>
 
           <div class="ann-section">
+            <div class="ann-section-title">Font Sizes</div>
+            <div class="ann-hint">In points (pt). Word uses half-points internally.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+              <div class="ann-field">
+                <label>Title</label>
+                <input type="number" id="ann-fs-title" value="13" min="6" max="24" style="width:100%">
+              </div>
+              <div class="ann-field">
+                <label>Nodal dept.</label>
+                <input type="number" id="ann-fs-nodal" value="9" min="6" max="18" style="width:100%">
+              </div>
+              <div class="ann-field">
+                <label>Col. header</label>
+                <input type="number" id="ann-fs-header" value="9" min="6" max="16" style="width:100%">
+              </div>
+              <div class="ann-field">
+                <label>Table body</label>
+                <input type="number" id="ann-fs-body" value="8" min="6" max="14" style="width:100%">
+              </div>
+              <div class="ann-field">
+                <label>Footer note</label>
+                <input type="number" id="ann-fs-footer" value="8" min="6" max="12" style="width:100%">
+              </div>
+              <div class="ann-field">
+                <label>Page no.</label>
+                <input type="number" id="ann-fs-pagenum" value="8" min="6" max="12" style="width:100%">
+              </div>
+            </div>
+          </div>
+
+          <div class="ann-section">
             <div class="ann-section-title">Footer Note</div>
             <div class="ann-field">
               <label>Bold prefix <span style="font-weight:400;opacity:0.6">(e.g. "Role of Nodal Department:")</span></label>
@@ -1398,9 +1429,12 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
             <div style="margin-top:6px;font-size:11px;color:var(--slate)" id="ann-record-count">— records in current view</div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:4px">
-            <button class="ann-preview-btn" onclick="renderAnnexurePreview()">👁 Preview</button>
-            <button class="ann-export-btn" onclick="exportAnnexure()">⬇ Download PDF</button>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+            <button class="ann-preview-btn" onclick="renderAnnexurePreview()" style="flex:1;min-width:80px">👁 Preview</button>
+            <button class="ann-export-btn" onclick="exportAnnexure()" style="flex:1;min-width:80px">⬇ Single Annexure</button>
+          </div>
+          <div style="margin-top:6px">
+            <button class="ann-export-btn" onclick="openMultiAnnexureModal()" style="width:100%;background:var(--navy)">📑 Multi-Annexure Export</button>
           </div>
         </div>
 
@@ -1415,6 +1449,39 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
       </div>
     </div>
   </main>
+</div>
+
+<!-- MULTI-ANNEXURE MODAL -->
+<div class="modal-overlay" id="multi-ann-modal">
+  <div class="modal" style="width:560px;max-height:85vh">
+    <div class="modal-title">📑 Multi-Annexure Export</div>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:12px">
+      Group data by a field. Each group becomes a separate annexure in one Word document. Drag to reorder, uncheck to exclude, and edit each annexure's number and title.
+    </div>
+
+    <div class="ann-field" style="margin-bottom:12px">
+      <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--slate)">Group by field</label>
+      <select id="multi-group-field" onchange="buildMultiGroups()" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;background:var(--bg)">
+        <option value="ExamBucket">Exam Bucket</option>
+        <option value="Department">Department</option>
+        <option value="Group">Group</option>
+        <option value="ExamScheme">Exam Scheme</option>
+        <option value="RRChangeStatus">RR Change Status</option>
+        <option value="RequisitionStatus">Requisition Status</option>
+        <option value="AkrutiStatus">Akrutibandh Status</option>
+      </select>
+    </div>
+
+    <div style="font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--slate);margin-bottom:6px">
+      Groups <span style="opacity:0.5;font-weight:400;letter-spacing:0">(drag to reorder · uncheck to skip)</span>
+    </div>
+    <div id="multi-group-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:4px;background:var(--bg);display:flex;flex-direction:column;gap:3px"></div>
+
+    <div class="modal-footer" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeMultiAnnModal()">Cancel</button>
+      <button class="btn-apply" onclick="exportMultiAnnexure()">⬇ Export All Annexures</button>
+    </div>
+  </div>
 </div>
 
 <!-- COL SELECTOR MODAL -->
@@ -2382,7 +2449,7 @@ function renderAnnexurePreview() {
           `).join('')}
         </tbody>
       </table>
-      ${pi === pages.length - 1 && showFooter && (footerBold || footerBody) ? `
+      ${showFooter && (footerBold || footerBody) ? `
         <div class="ann-page-footer">
           ${footerBold ? `<strong>${footerBold}</strong> ` : ''}${footerBody}
         </div>` : ''}
@@ -2395,6 +2462,13 @@ function renderAnnexurePreview() {
 }
 
 // ── DOCX EXPORT ──
+// Font size helper — reads pt from input, converts to half-points (docx unit)
+function annFontSize(id, fallbackPt) {
+  const el = document.getElementById(id);
+  const pt = el ? parseFloat(el.value) || fallbackPt : fallbackPt;
+  return Math.round(pt * 2); // docx uses half-points
+}
+
 async function exportAnnexure() {
   if (!window.docx) {
     alert('Document library is still loading — please wait a moment and try again.');
@@ -2449,6 +2523,14 @@ async function exportAnnexure() {
     const wSum = colWidths.reduce((a,b)=>a+b,0);
     colWidths[colWidths.length-1] += CONTENT_W - wSum;
 
+    // Font sizes (pt → half-points)
+    const FS_TITLE  = annFontSize('ann-fs-title',  13);
+    const FS_NODAL  = annFontSize('ann-fs-nodal',   9);
+    const FS_HEADER = annFontSize('ann-fs-header',  9);
+    const FS_BODY   = annFontSize('ann-fs-body',    8);
+    const FS_FOOTER = annFontSize('ann-fs-footer',  8);
+    const FS_PGNUM  = annFontSize('ann-fs-pagenum', 8);
+
     // Left-align keys
     const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
       'RRBefore','RRAfter','AkrutiStatus','DeptResponse']);
@@ -2474,7 +2556,7 @@ async function exportAnnexure() {
             bold: true,
             color: 'FFFFFF',
             font: 'Arial',
-            size: 18, // 9pt
+            size: FS_HEADER, // col header
           })]
         })]
       }))
@@ -2493,7 +2575,7 @@ async function exportAnnexure() {
           margins: { top: 40, bottom: 40, left: 80, right: 80 },
           children: lines.map(line => new Paragraph({
             alignment: align,
-            children: [new TextRun({ text: line, font: 'Arial', size: 16 })]
+            children: [new TextRun({ text: line, font: 'Arial', size: FS_BODY })]
           }))
         });
       })
@@ -2507,13 +2589,13 @@ async function exportAnnexure() {
     const children = [
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: titleText, bold: true, font: 'Arial', size: 26 })]
+        children: [new TextRun({ text: titleText, bold: true, font: 'Arial', size: FS_TITLE })]
       }),
     ];
     if (title2) {
       children.push(new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: title2, bold: true, font: 'Arial', size: 26 })]
+        children: [new TextRun({ text: title2, bold: true, font: 'Arial', size: FS_TITLE })]
         ,spacing: { after: 0 }
       }));
     }
@@ -2521,7 +2603,7 @@ async function exportAnnexure() {
       children.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 160 },
-        children: [new TextRun({ text: `Nodal Department: ${nodal}`, font: 'Arial', size: 18 })]
+        children: [new TextRun({ text: `Nodal Department: ${nodal}`, font: 'Arial', size: FS_NODAL })]
       }));
     } else {
       children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
@@ -2534,37 +2616,39 @@ async function exportAnnexure() {
       rows: [headerRow, ...dataRows],
     }));
 
-    // Footer note
-    if (showFooter && (footerBold || footerBody)) {
-      children.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
-      children.push(new Paragraph({
-        children: [
-          footerBold ? new TextRun({ text: footerBold + ' ', bold: true, font: 'Arial', size: 18 }) : null,
-          footerBody ? new TextRun({ text: footerBody, font: 'Arial', size: 18 }) : null,
-        ].filter(Boolean)
-      }));
-    }
+    // Footer note is now in the Word page footer (repeats on every page)
 
     const doc = new Document({
       sections: [{
         properties: {
           page: {
             size: {
-              width: PAGE_H,    // pass short edge as width
-              height: PAGE_W,   // pass long edge as height
+              width: PAGE_H,
+              height: PAGE_W,
               orientation: PageOrientation.LANDSCAPE,
             },
-            margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN },
+            margin: { top: MARGIN, right: MARGIN, bottom: MARGIN + (showFooter && (footerBold || footerBody) ? 480 : 0), left: MARGIN },
           }
         },
         footers: {
           default: new Footer({
-            children: [new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [
-                new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: 16 }),
-              ]
-            })]
+            children: showFooter && (footerBold || footerBody) ? [
+              new Paragraph({
+                children: [
+                  footerBold ? new TextRun({ text: footerBold + ' ', bold: true, font: 'Arial', size: FS_FOOTER }) : null,
+                  footerBody ? new TextRun({ text: footerBody, font: 'Arial', size: FS_FOOTER }) : null,
+                ].filter(Boolean)
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: FS_PGNUM })]
+              })
+            ] : [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: FS_PGNUM })]
+              })
+            ]
           })
         },
         children,
@@ -2587,6 +2671,235 @@ async function exportAnnexure() {
   } catch(err) {
     hideLoading();
     showError('Export failed: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ─────────────────────────────────────────────
+// MULTI-ANNEXURE EXPORT
+// ─────────────────────────────────────────────
+let multiGroups = []; // { value, label, annNumber, annTitle, include, dragIdx }
+let multiDragSrc = null;
+
+const MULTI_GROUP_FIELDS = {
+  ExamBucket:        'Exam Bucket',
+  Department:        'Department',
+  Group:             'Group',
+  ExamScheme:        'Exam Scheme',
+  RRChangeStatus:    'RR Change Status',
+  RequisitionStatus: 'Requisition Status',
+  AkrutiStatus:      'Akrutibandh Status',
+};
+
+function openMultiAnnexureModal() {
+  if (!FILTERED_DATA.length) { alert('Load data first.'); return; }
+  buildMultiGroups();
+  document.getElementById('multi-ann-modal').classList.add('open');
+}
+function closeMultiAnnModal() {
+  document.getElementById('multi-ann-modal').classList.remove('open');
+}
+
+function buildMultiGroups() {
+  const field = document.getElementById('multi-group-field').value;
+  const baseNum = parseInt(document.getElementById('ann-number').value) || 1;
+  const baseTitle = document.getElementById('ann-title1').value.trim() || 'Annexure';
+  const data = getAnnData();
+
+  // Collect unique values preserving order of first appearance
+  const seen = new Map();
+  data.forEach(r => {
+    const v = r[field] || '(Blank)';
+    if (!seen.has(v)) seen.set(v, 0);
+    seen.set(v, seen.get(v) + 1);
+  });
+
+  multiGroups = Array.from(seen.entries()).map(([value, count], i) => ({
+    value,
+    count,
+    annNumber: String(baseNum + i),
+    annTitle:  value,
+    include:   true,
+  }));
+
+  renderMultiGroupList();
+}
+
+function renderMultiGroupList() {
+  const list = document.getElementById('multi-group-list');
+  list.innerHTML = multiGroups.map((g, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:white;border:1px solid var(--border);border-radius:4px;${!g.include?'opacity:0.45':''}"
+         draggable="true"
+         ondragstart="multiDragStart(event,${i})"
+         ondragover="multiDragOver(event,${i})"
+         ondrop="multiDrop(event,${i})"
+         ondragend="multiDragEnd()"
+         id="mg-${i}">
+      <span style="color:var(--slate);cursor:grab;font-size:13px;flex-shrink:0">⠿</span>
+      <input type="checkbox" ${g.include?'checked':''} onchange="multiGroups[${i}].include=this.checked;renderMultiGroupList()" style="accent-color:var(--saffron);flex-shrink:0">
+      <input type="text" value="${esc(g.annNumber)}" placeholder="No." oninput="multiGroups[${i}].annNumber=this.value"
+        style="width:52px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;font-size:11px;font-family:'IBM Plex Sans',sans-serif;flex-shrink:0">
+      <input type="text" value="${esc(g.annTitle)}" placeholder="Annexure title" oninput="multiGroups[${i}].annTitle=this.value"
+        style="flex:1;padding:3px 6px;border:1px solid var(--border);border-radius:3px;font-size:11px;font-family:'IBM Plex Sans',sans-serif">
+      <span style="font-size:10px;color:var(--slate);white-space:nowrap;flex-shrink:0">${g.count} rows</span>
+    </div>
+  `).join('');
+}
+
+function multiDragStart(e, i) { multiDragSrc = i; }
+function multiDragOver(e, i) { e.preventDefault(); }
+function multiDrop(e, i) {
+  e.preventDefault();
+  if (multiDragSrc === null || multiDragSrc === i) return;
+  const moved = multiGroups.splice(multiDragSrc, 1)[0];
+  multiGroups.splice(i, 0, moved);
+  multiDragSrc = null;
+  renderMultiGroupList();
+}
+function multiDragEnd() { multiDragSrc = null; }
+
+async function exportMultiAnnexure() {
+  if (!window.docx) { alert('Document library still loading.'); return; }
+  const field = document.getElementById('multi-group-field').value;
+  const activeGroups = multiGroups.filter(g => g.include);
+  if (!activeGroups.length) { alert('Select at least one group.'); return; }
+
+  const cols = annCols.filter(c => c.on);
+  if (!cols.length) { alert('Select at least one column in Table Columns.'); return; }
+
+  const annNumber2 = document.getElementById('ann-number').value.trim();
+  const title2val  = document.getElementById('ann-title2').value.trim();
+  const nodal      = document.getElementById('ann-nodal').value.trim();
+  const footerBold = document.getElementById('ann-footer-bold').value.trim();
+  const footerBody = document.getElementById('ann-footer-body').value.trim();
+  const showFooter = document.getElementById('ann-footer-toggle').checked;
+
+  const FS_TITLE  = annFontSize('ann-fs-title',  13);
+  const FS_NODAL  = annFontSize('ann-fs-nodal',   9);
+  const FS_HEADER = annFontSize('ann-fs-header',  9);
+  const FS_BODY   = annFontSize('ann-fs-body',    8);
+  const FS_FOOTER = annFontSize('ann-fs-footer',  8);
+  const FS_PGNUM  = annFontSize('ann-fs-pagenum', 8);
+
+  showLoading(`Building ${activeGroups.length} annexures…`);
+
+  try {
+    const {
+      Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+      AlignmentType, PageOrientation, WidthType, BorderStyle, ShadingType,
+      VerticalAlign, Footer, PageNumber, PageBreak
+    } = window.docx;
+
+    const PAGE_W = 16838, PAGE_H = 11906, MARGIN = 720;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+
+    const COL_WEIGHT = {
+      SNo:0.4,Group:0.5,RRDate:0.7,RRNumber:1.2,PayScale:1.1,
+      Department:1.4,Establishment:1.6,CadreName:2.0,
+      ExamBucket:2.2,ExamScheme:2.0,RRBefore:3.0,RRAfter:3.0,
+      AkrutiStatus:1.8,RequisitionStatus:0.9,VacancyUpdated:0.8,
+      VacancyAkruti:0.8,DeptResponse:1.2,PromotionDRRatio:0.9,RRChangeStatus:1.0,
+    };
+    const weights   = cols.map(c => COL_WEIGHT[c.key] || 1.2);
+    const totalW    = weights.reduce((a,b)=>a+b,0);
+    const colWidths = weights.map(w => Math.round(CONTENT_W * w / totalW));
+    colWidths[colWidths.length-1] += CONTENT_W - colWidths.reduce((a,b)=>a+b,0);
+
+    const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
+      'RRBefore','RRAfter','AkrutiStatus','DeptResponse']);
+
+    const border    = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
+    const borders   = { top:border, bottom:border, left:border, right:border };
+    const hdrBorder = { style: BorderStyle.SINGLE, size: 6, color: '1A2744' };
+    const hdrBorders = { top:hdrBorder, bottom:hdrBorder, left:hdrBorder, right:hdrBorder };
+
+    const baseData = getAnnData();
+
+    // Build one section per group
+    const sections = activeGroups.map((g, gi) => {
+      const data = baseData.filter(r => (r[field] || '(Blank)') === g.value);
+      const titleText = g.annNumber ? `Annexure ${g.annNumber}: ${g.annTitle}` : g.annTitle;
+
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: cols.map((c, ci) => new TableCell({
+          borders: hdrBorders, width: { size: colWidths[ci], type: WidthType.DXA },
+          shading: { fill: '1A2744', type: ShadingType.CLEAR },
+          margins: { top:60, bottom:60, left:80, right:80 },
+          verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({ alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: c.header, bold:true, color:'FFFFFF', font:'Arial', size:FS_HEADER })] })]
+        }))
+      });
+
+      const dataRows = data.map((r, rowI) => new TableRow({
+        children: cols.map((c, ci) => {
+          const raw = c.key === 'SNo' ? String(rowI+1) : (r[c.key]||'');
+          const lines = String(raw).split('\n');
+          const align = LEFT_ALIGN_KEYS.has(c.key) ? AlignmentType.LEFT : AlignmentType.CENTER;
+          return new TableCell({
+            borders, width: { size: colWidths[ci], type: WidthType.DXA },
+            shading: { fill: rowI%2===0?'FFFFFF':'F8F8F8', type: ShadingType.CLEAR },
+            margins: { top:40, bottom:40, left:80, right:80 },
+            children: lines.map(line => new Paragraph({ alignment:align,
+              children:[new TextRun({text:line, font:'Arial', size:FS_BODY})] }))
+          });
+        })
+      }));
+
+      const children = [
+        new Paragraph({ alignment: AlignmentType.CENTER,
+          children:[new TextRun({text:titleText, bold:true, font:'Arial', size:FS_TITLE})] }),
+      ];
+      if (title2val) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing:{after:0},
+        children:[new TextRun({text:title2val, bold:true, font:'Arial', size:FS_TITLE})] }));
+      if (nodal) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing:{after:160},
+        children:[new TextRun({text:`Nodal Department: ${nodal}`, font:'Arial', size:FS_NODAL})] }));
+      else children.push(new Paragraph({ spacing:{after:160}, children:[] }));
+
+      children.push(new Table({ width:{size:CONTENT_W, type:WidthType.DXA}, columnWidths:colWidths,
+        rows:[headerRow, ...dataRows] }));
+
+      const footerChildren = showFooter && (footerBold || footerBody) ? [
+        new Paragraph({ children:[
+          footerBold ? new TextRun({text:footerBold+' ', bold:true, font:'Arial', size:FS_FOOTER}) : null,
+          footerBody ? new TextRun({text:footerBody, font:'Arial', size:FS_FOOTER}) : null,
+        ].filter(Boolean) }),
+        new Paragraph({ alignment:AlignmentType.RIGHT,
+          children:[new TextRun({children:[PageNumber.CURRENT], font:'Arial', size:FS_PGNUM})] })
+      ] : [
+        new Paragraph({ alignment:AlignmentType.RIGHT,
+          children:[new TextRun({children:[PageNumber.CURRENT], font:'Arial', size:FS_PGNUM})] })
+      ];
+
+      return {
+        properties: {
+          page: {
+            size: { width:PAGE_H, height:PAGE_W, orientation:PageOrientation.LANDSCAPE },
+            margin: { top:MARGIN, right:MARGIN, bottom:MARGIN+(showFooter&&(footerBold||footerBody)?480:0), left:MARGIN },
+          }
+        },
+        footers: { default: new Footer({ children: footerChildren }) },
+        children,
+      };
+    });
+
+    const doc = new Document({ sections });
+    const buffer = await Packer.toBuffer(doc);
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const fieldLabel = MULTI_GROUP_FIELDS[field] || field;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Multi_Annexure_by_${fieldLabel.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.docx`;
+    a.click();
+    hideLoading();
+    closeMultiAnnModal();
+
+  } catch(err) {
+    hideLoading();
+    showError('Multi-export failed: ' + err.message);
     console.error(err);
   }
 }
