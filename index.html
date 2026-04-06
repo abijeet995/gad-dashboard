@@ -6,6 +6,7 @@
 <title>GAD Cadre Reforms Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -631,6 +632,199 @@
   .link-add-form input { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; }
   .link-add-form button { background: var(--navy); color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'IBM Plex Sans', sans-serif; }
 
+  /* ─── ANNEXURE GENERATOR TAB ─────────────────── */
+  .ann-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    height: calc(100vh - 130px);
+  }
+  .ann-controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ann-section { display: flex; flex-direction: column; gap: 8px; }
+  .ann-section-title {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--slate);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ann-field { display: flex; flex-direction: column; gap: 3px; }
+  .ann-field label { font-size: 10px; color: var(--slate); font-weight: 500; }
+  .ann-field input, .ann-field textarea, .ann-field select {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--text);
+    resize: vertical;
+  }
+  .ann-field input:focus, .ann-field textarea:focus { outline: none; border-color: var(--saffron); }
+  .ann-hint { font-size: 10px; color: var(--slate); font-style: italic; }
+
+  /* Column list — drag to reorder */
+  .ann-col-list { display: flex; flex-direction: column; gap: 4px; }
+  .ann-col-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 11px;
+  }
+  .ann-col-item:active { cursor: grabbing; opacity: 0.7; }
+  .ann-col-item.dragging { opacity: 0.4; border-style: dashed; }
+  .ann-col-item.drag-over { border-color: var(--saffron); background: var(--saffron-pale); }
+  .ann-col-item input[type=checkbox] { accent-color: var(--saffron); flex-shrink: 0; }
+  .ann-col-label { flex: 1; }
+  .ann-col-header-input {
+    width: 100%;
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: white;
+  }
+  .ann-col-header-input:focus { outline: none; border-color: var(--saffron); }
+  .ann-drag-handle { color: var(--slate); opacity: 0.4; font-size: 13px; cursor: grab; user-select: none; }
+
+  /* Buttons */
+  .ann-preview-btn {
+    flex: 1;
+    padding: 8px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .ann-preview-btn:hover { background: var(--navy-mid); }
+  .ann-export-btn {
+    flex: 1;
+    padding: 8px;
+    background: var(--saffron);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .ann-export-btn:hover { background: #c95516; }
+
+  /* Preview pane */
+  .ann-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .ann-preview-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .ann-preview-scroll {
+    flex: 1;
+    overflow-y: auto;
+    background: #e5e7eb;
+    border-radius: 4px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  /* A4 landscape page simulation */
+  .ann-page {
+    background: white;
+    width: 100%;
+    max-width: 960px;
+    padding: 36px 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    position: relative;
+  }
+  .ann-page-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  .ann-page-nodal {
+    text-align: center;
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+  .ann-page table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    font-family: Arial, sans-serif;
+    table-layout: fixed;
+  }
+  .ann-page table th {
+    background: #1A2744;
+    color: white;
+    font-weight: bold;
+    padding: 5px 6px;
+    border: 1px solid #aaa;
+    text-align: center;
+    font-size: 10px;
+    word-wrap: break-word;
+  }
+  .ann-page table td {
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    vertical-align: top;
+    word-wrap: break-word;
+  }
+  .ann-page table tr:nth-child(even) td { background: #f8f8f8; }
+  .ann-page-footer {
+    margin-top: 14px;
+    font-size: 10px;
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .ann-page-num {
+    position: absolute;
+    bottom: 12px;
+    right: 20px;
+    font-size: 9px;
+    color: #888;
+  }
+  .ann-empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--slate);
+    font-size: 13px;
+  }
+
   /* ─── COL SELECTOR MODAL ─────────────────────── */
   .modal-overlay {
     display: none;
@@ -839,6 +1033,7 @@
       <button class="tab-btn" onclick="switchTab('dept')">Dept. Breakdown</button>
       <button class="tab-btn" onclick="switchTab('rr')">RR Analysis</button>
       <button class="tab-btn" onclick="switchTab('links')">Linked Files</button>
+      <button class="tab-btn" onclick="switchTab('annexure')">📄 Generate Annexure</button>
     </div>
 
     <!-- OVERVIEW TAB -->
@@ -1064,6 +1259,82 @@
           <input type="text" id="link-emoji" placeholder="Icon (emoji)" style="max-width:70px">
           <button onclick="addLink()">Add</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ANNEXURE GENERATOR TAB -->
+    <div class="tab-panel" id="tab-annexure">
+      <div class="ann-layout">
+
+        <!-- LEFT: Controls -->
+        <div class="ann-controls">
+
+          <div class="ann-section">
+            <div class="ann-section-title">Document Header</div>
+            <div class="ann-field">
+              <label>Annexure Number</label>
+              <input type="text" id="ann-number" placeholder="e.g. 27" value="27">
+            </div>
+            <div class="ann-field">
+              <label>Annexure Title (Line 1)</label>
+              <input type="text" id="ann-title1" placeholder="e.g. Clerk (NG Admin)" value="Clerk (NG Admin)">
+            </div>
+            <div class="ann-field">
+              <label>Annexure Title (Line 2) <span style="font-weight:400;opacity:0.6">(optional)</span></label>
+              <input type="text" id="ann-title2" placeholder="Leave blank if single line">
+            </div>
+            <div class="ann-field">
+              <label>Nodal Department</label>
+              <input type="text" id="ann-nodal" placeholder="e.g. General Administration Department" value="General Administration Department">
+            </div>
+          </div>
+
+          <div class="ann-section">
+            <div class="ann-section-title">Table Columns</div>
+            <div class="ann-hint">Drag to reorder. Uncheck to hide.</div>
+            <div class="ann-col-list" id="ann-col-list"></div>
+          </div>
+
+          <div class="ann-section">
+            <div class="ann-section-title">Footer Note</div>
+            <div class="ann-field">
+              <label>Bold prefix <span style="font-weight:400;opacity:0.6">(e.g. "Role of Nodal Department:")</span></label>
+              <input type="text" id="ann-footer-bold" value="Role of Nodal Department:">
+            </div>
+            <div class="ann-field">
+              <label>Footer body text</label>
+              <textarea id="ann-footer-body" rows="3" placeholder="Footer note text…">The nodal department will finalise the total number of cadres, eligibility criteria, and recruitment process for the inclusion of cadres into the new service. This shall be proposed by the department to MPSC, after taking approval of the competent authority. This process shall be completed within 3 months from the date of issuance of GR by GAD.</textarea>
+            </div>
+            <div class="ann-field" style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" id="ann-footer-toggle" checked style="accent-color:var(--saffron)">
+              <label for="ann-footer-toggle" style="margin:0">Include footer note</label>
+            </div>
+          </div>
+
+          <div class="ann-section">
+            <div class="ann-section-title">Data Source</div>
+            <div class="ann-hint">Uses current filtered data from the sidebar. Apply your filters first, then generate.</div>
+            <div class="ann-field" style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" id="ann-active-only" checked style="accent-color:var(--saffron)">
+              <label for="ann-active-only" style="margin:0">Active cadres only</label>
+            </div>
+            <div style="margin-top:6px;font-size:11px;color:var(--slate)" id="ann-record-count">— records in current view</div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="ann-preview-btn" onclick="renderAnnexurePreview()">👁 Preview</button>
+            <button class="ann-export-btn" onclick="exportAnnexure()">⬇ Download PDF</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Preview -->
+        <div class="ann-preview-wrap">
+          <div class="ann-preview-label">Preview — click Preview button to refresh</div>
+          <div class="ann-preview-scroll" id="ann-preview">
+            <div class="ann-empty-state">Configure options on the left and click <strong>👁 Preview</strong> to see how your document will look.</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -1788,19 +2059,19 @@ function applyColModal() {
 // TABS
 // ─────────────────────────────────────────────
 function switchTab(name) {
+  const tabs = ['overview','data','dept','rr','links','annexure'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const tabs = ['overview','data','dept','rr','links'];
     b.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
 
-  // Resize charts when switching to overview
   if (name === 'overview') setTimeout(() => Object.values(CHARTS).forEach(c => c.resize()), 50);
   if (name === 'rr') setTimeout(() => {
     if (CHARTS['chart-rr-group']) CHARTS['chart-rr-group'].resize();
     if (CHARTS['chart-rr-bucket']) CHARTS['chart-rr-bucket'].resize();
   }, 50);
+  if (name === 'annexure') initAnnexureTab();
 }
 
 // ─────────────────────────────────────────────
@@ -1848,6 +2119,352 @@ function removeLink(e, i) {
   savedLinks.splice(i, 1);
   localStorage.setItem('gad_links', JSON.stringify(savedLinks));
   renderLinks();
+}
+
+// ─────────────────────────────────────────────
+// ANNEXURE GENERATOR
+// ─────────────────────────────────────────────
+
+// All available columns for the annexure
+const ANN_AVAILABLE_COLS = [
+  { key: 'SNo',               header: 'S.No.',           on: true  },
+  { key: 'Department',        header: 'Department',       on: true  },
+  { key: 'Establishment',     header: 'Establishment',    on: true  },
+  { key: 'Group',             header: 'Group',            on: true  },
+  { key: 'CadreName',         header: 'Cadre Name',       on: true  },
+  { key: 'PayScale',          header: 'Pay Scale',        on: true  },
+  { key: 'ExamBucket',        header: 'Exam Bucket',      on: false },
+  { key: 'ExamScheme',        header: 'Exam Scheme',      on: false },
+  { key: 'RRNumber',          header: 'RR Number',        on: false },
+  { key: 'RRDate',            header: 'RR Date',          on: false },
+  { key: 'RRChangeStatus',    header: 'RR Change',        on: false },
+  { key: 'RRBefore',          header: 'RR Details (Before Reforms)', on: false },
+  { key: 'RRAfter',           header: 'RR Details (After Reforms)',  on: false },
+  { key: 'AkrutiStatus',      header: 'Akrutibandh Status',on: false },
+  { key: 'RequisitionStatus', header: 'Requisition Status',on: false },
+  { key: 'VacancyUpdated',    header: 'Vacancy (9 Feb 26)',on: false },
+  { key: 'VacancyAkruti',     header: 'Vacancy (After Akrutibandh)', on: false },
+  { key: 'DeptResponse',      header: 'Dept. Response',   on: false },
+  { key: 'PromotionDRRatio',  header: 'DR:Promo Ratio',   on: false },
+];
+
+let annCols = ANN_AVAILABLE_COLS.map(c => ({ ...c })); // working copy
+let annDragSrc = null;
+
+function initAnnexureTab() {
+  renderAnnColList();
+  updateAnnRecordCount();
+}
+
+function updateAnnRecordCount() {
+  const activeOnly = document.getElementById('ann-active-only').checked;
+  const data = getAnnData(activeOnly);
+  document.getElementById('ann-record-count').textContent =
+    data.length.toLocaleString() + ' records will be included';
+}
+
+function getAnnData(activeOnly) {
+  return activeOnly
+    ? FILTERED_DATA.filter(r => r.Status === 'Active')
+    : FILTERED_DATA;
+}
+
+function renderAnnColList() {
+  const list = document.getElementById('ann-col-list');
+  list.innerHTML = annCols.map((c, i) => `
+    <div class="ann-col-item" draggable="true"
+         ondragstart="annDragStart(event,${i})"
+         ondragover="annDragOver(event,${i})"
+         ondrop="annDrop(event,${i})"
+         ondragend="annDragEnd()"
+         id="ann-col-item-${i}">
+      <span class="ann-drag-handle">⠿</span>
+      <input type="checkbox" ${c.on ? 'checked' : ''}
+             onchange="annCols[${i}].on=this.checked">
+      <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:10px;color:var(--slate)">${c.key}</span>
+        <input class="ann-col-header-input" type="text" value="${esc(c.header)}"
+               oninput="annCols[${i}].header=this.value"
+               placeholder="Column header text">
+      </div>
+    </div>
+  `).join('');
+}
+
+// Drag-and-drop reordering
+function annDragStart(e, i) {
+  annDragSrc = i;
+  e.dataTransfer.effectAllowed = 'move';
+  document.getElementById('ann-col-item-'+i).classList.add('dragging');
+}
+function annDragOver(e, i) {
+  e.preventDefault();
+  document.querySelectorAll('.ann-col-item').forEach(el => el.classList.remove('drag-over'));
+  document.getElementById('ann-col-item-'+i).classList.add('drag-over');
+}
+function annDrop(e, i) {
+  e.preventDefault();
+  if (annDragSrc === null || annDragSrc === i) return;
+  const moved = annCols.splice(annDragSrc, 1)[0];
+  annCols.splice(i, 0, moved);
+  renderAnnColList();
+}
+function annDragEnd() {
+  annDragSrc = null;
+  document.querySelectorAll('.ann-col-item').forEach(el => {
+    el.classList.remove('dragging','drag-over');
+  });
+}
+
+// ── PREVIEW ──
+function renderAnnexurePreview() {
+  const annNumber  = document.getElementById('ann-number').value.trim();
+  const title1     = document.getElementById('ann-title1').value.trim();
+  const title2     = document.getElementById('ann-title2').value.trim();
+  const nodal      = document.getElementById('ann-nodal').value.trim();
+  const footerBold = document.getElementById('ann-footer-bold').value.trim();
+  const footerBody = document.getElementById('ann-footer-body').value.trim();
+  const showFooter = document.getElementById('ann-footer-toggle').checked;
+  const activeOnly = document.getElementById('ann-active-only').checked;
+
+  const data = getAnnData(activeOnly);
+  const cols = annCols.filter(c => c.on);
+
+  if (!data.length) {
+    document.getElementById('ann-preview').innerHTML =
+      '<div class="ann-empty-state">No data matches current filters.</div>';
+    return;
+  }
+  if (!cols.length) {
+    document.getElementById('ann-preview').innerHTML =
+      '<div class="ann-empty-state">Select at least one column.</div>';
+    return;
+  }
+
+  // Paginate — roughly 30 rows per page for preview
+  const ROWS_PER_PAGE = 30;
+  const pages = [];
+  for (let i = 0; i < data.length; i += ROWS_PER_PAGE) {
+    pages.push(data.slice(i, i + ROWS_PER_PAGE));
+  }
+
+  const colPct = Math.floor(100 / cols.length);
+
+  const titleLine = annNumber
+    ? `Annexure ${annNumber}: ${title1}${title2 ? '\n' + title2 : ''}`
+    : `${title1}${title2 ? '\n' + title2 : ''}`;
+
+  const pagesHtml = pages.map((pageRows, pi) => `
+    <div class="ann-page">
+      <div class="ann-page-title">${titleLine.replace('\n','<br>')}</div>
+      ${nodal ? `<div class="ann-page-nodal">Nodal Department: ${nodal}</div>` : ''}
+      <table>
+        <thead>
+          <tr>${cols.map(c => `<th style="width:${colPct}%">${c.header}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${pageRows.map((r, rowI) => `
+            <tr>
+              ${cols.map(c => {
+                let val = c.key === 'SNo' ? (pi * ROWS_PER_PAGE + rowI + 1) : (r[c.key] || '');
+                return `<td>${String(val).replace(/\n/g,'<br>')}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ${pi === pages.length - 1 && showFooter && (footerBold || footerBody) ? `
+        <div class="ann-page-footer">
+          ${footerBold ? `<strong>${footerBold}</strong> ` : ''}${footerBody}
+        </div>` : ''}
+      <div class="ann-page-num">${pi + 1}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('ann-preview').innerHTML =
+    `<div class="ann-preview-scroll">${pagesHtml}</div>`;
+}
+
+// ── DOCX EXPORT ──
+async function exportAnnexure() {
+  if (!window.docx) {
+    alert('Document library is still loading — please wait a moment and try again.');
+    return;
+  }
+
+  const annNumber  = document.getElementById('ann-number').value.trim();
+  const title1     = document.getElementById('ann-title1').value.trim();
+  const title2     = document.getElementById('ann-title2').value.trim();
+  const nodal      = document.getElementById('ann-nodal').value.trim();
+  const footerBold = document.getElementById('ann-footer-bold').value.trim();
+  const footerBody = document.getElementById('ann-footer-body').value.trim();
+  const showFooter = document.getElementById('ann-footer-toggle').checked;
+  const activeOnly = document.getElementById('ann-active-only').checked;
+
+  const data = getAnnData(activeOnly);
+  const cols = annCols.filter(c => c.on);
+
+  if (!data.length) { alert('No data to export.'); return; }
+  if (!cols.length) { alert('Select at least one column.'); return; }
+
+  showLoading('Building Word document…');
+
+  try {
+    const {
+      Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+      AlignmentType, PageOrientation, WidthType, BorderStyle, ShadingType,
+      VerticalAlign, Header, Footer, PageNumber
+    } = window.docx;
+
+    // A4 landscape in DXA (1440 DXA = 1 inch)
+    // A4: 297mm × 210mm → landscape: 16838 × 11906 DXA
+    // Margins: 720 DXA (0.5 inch) each side
+    const PAGE_W   = 16838;
+    const PAGE_H   = 11906;
+    const MARGIN   = 720;
+    const CONTENT_W = PAGE_W - MARGIN * 2; // 15398 DXA
+
+    const colW = Math.floor(CONTENT_W / cols.length);
+    const colWidths = cols.map((_, i) =>
+      i === cols.length - 1 ? CONTENT_W - colW * (cols.length - 1) : colW
+    );
+
+    const border = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
+    const borders = { top: border, bottom: border, left: border, right: border };
+    const hdrBorder = { style: BorderStyle.SINGLE, size: 6, color: '1A2744' };
+    const hdrBorders = { top: hdrBorder, bottom: hdrBorder, left: hdrBorder, right: hdrBorder };
+
+    // Header row
+    const headerRow = new TableRow({
+      tableHeader: true,
+      children: cols.map((c, ci) => new TableCell({
+        borders: hdrBorders,
+        width: { size: colWidths[ci], type: WidthType.DXA },
+        shading: { fill: '1A2744', type: ShadingType.CLEAR },
+        margins: { top: 60, bottom: 60, left: 80, right: 80 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({
+            text: c.header,
+            bold: true,
+            color: 'FFFFFF',
+            font: 'Arial',
+            size: 18, // 9pt
+          })]
+        })]
+      }))
+    });
+
+    // Data rows
+    const dataRows = data.map((r, rowI) => new TableRow({
+      children: cols.map((c, ci) => {
+        const raw = c.key === 'SNo' ? String(rowI + 1) : (r[c.key] || '');
+        const lines = String(raw).split('\n');
+        return new TableCell({
+          borders,
+          width: { size: colWidths[ci], type: WidthType.DXA },
+          shading: { fill: rowI % 2 === 0 ? 'FFFFFF' : 'F8F8F8', type: ShadingType.CLEAR },
+          margins: { top: 40, bottom: 40, left: 80, right: 80 },
+          children: lines.map(line => new Paragraph({
+            alignment: c.key === 'SNo' || c.key === 'Group'
+              ? AlignmentType.CENTER : AlignmentType.LEFT,
+            children: [new TextRun({ text: line, font: 'Arial', size: 16 })] // 8pt
+          }))
+        });
+      })
+    }));
+
+    // Title paragraphs
+    const titleText = annNumber
+      ? `Annexure ${annNumber}: ${title1}`
+      : title1;
+
+    const children = [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: titleText, bold: true, font: 'Arial', size: 26 })]
+      }),
+    ];
+    if (title2) {
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: title2, bold: true, font: 'Arial', size: 26 })]
+        ,spacing: { after: 0 }
+      }));
+    }
+    if (nodal) {
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 160 },
+        children: [new TextRun({ text: `Nodal Department: ${nodal}`, font: 'Arial', size: 18 })]
+      }));
+    } else {
+      children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
+    }
+
+    // Table
+    children.push(new Table({
+      width: { size: CONTENT_W, type: WidthType.DXA },
+      columnWidths: colWidths,
+      rows: [headerRow, ...dataRows],
+    }));
+
+    // Footer note
+    if (showFooter && (footerBold || footerBody)) {
+      children.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
+      children.push(new Paragraph({
+        children: [
+          footerBold ? new TextRun({ text: footerBold + ' ', bold: true, font: 'Arial', size: 18 }) : null,
+          footerBody ? new TextRun({ text: footerBody, font: 'Arial', size: 18 }) : null,
+        ].filter(Boolean)
+      }));
+    }
+
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: {
+              width: PAGE_H,    // pass short edge as width
+              height: PAGE_W,   // pass long edge as height
+              orientation: PageOrientation.LANDSCAPE,
+            },
+            margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN },
+          }
+        },
+        footers: {
+          default: new Footer({
+            children: [new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              children: [
+                new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: 16 }),
+              ]
+            })]
+          })
+        },
+        children,
+      }]
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const filename = annNumber
+      ? `Annexure_${annNumber}_${title1.replace(/[^a-z0-9]/gi,'_').slice(0,40)}.docx`
+      : `${title1.replace(/[^a-z0-9]/gi,'_').slice(0,40)}.docx`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    hideLoading();
+
+  } catch(err) {
+    hideLoading();
+    showError('Export failed: ' + err.message);
+    console.error(err);
+  }
 }
 
 // Init
