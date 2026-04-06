@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAD Cadre Reforms Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --saffron: #E8621A;
+    --saffron-light: #F4956A;
+    --saffron-pale: #FDF0E8;
+    --navy: #1A2744;
+    --navy-mid: #2E4070;
+    --navy-light: #4A5E8A;
+    --slate: #64748B;
+    --bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --border: #E2E6ED;
+    --text: #1A2744;
+    --text-soft: #64748B;
+    --green: #16A34A;
+    --amber: #D97706;
+    --red: #DC2626;
+    --blue: #2563EB;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ─── TOP BAR ─────────────────────────────────── */
+  .topbar {
+    background: var(--navy);
+    color: white;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--saffron);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--saffron-light);
+    opacity: 0.9;
+  }
+  .topbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .topbar-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.2); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .data-source-badge {
+    font-size: 11px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: rgba(255,255,255,0.7);
+  }
+  .last-refresh {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+  }
+  .btn-upload {
+    background: var(--saffron);
+    color: white;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-upload:hover { background: #c95516; }
+  #file-input { display: none; }
+
+  /* ─── AUTH STATES ─────────────────────────────── */
+  .btn-signin {
+    background: var(--saffron);
+    color: white;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-signin:hover { background: #c95516; }
+  .btn-signout {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.7);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+  }
+  .btn-signout:hover { border-color: rgba(255,255,255,0.5); color: white; }
+  .btn-refresh {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+  }
+  .btn-refresh:hover { background: rgba(255,255,255,0.15); }
+  .user-pill {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 3px 10px;
+    border-radius: 20px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,39,68,0.82);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    gap: 14px;
+  }
+  .loading-overlay.hidden { display: none; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: var(--saffron);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-msg { font-size: 14px; opacity: 0.85; font-family: 'IBM Plex Mono', monospace; }
+
+  /* ─── LAYOUT ──────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 52px);
+  }
+
+  /* ─── SIDEBAR FILTERS ─────────────────────────── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    overflow-y: auto;
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+  }
+  .sidebar-section { padding: 0 14px 14px; }
+  .sidebar-section + .sidebar-section { border-top: 1px solid var(--border); padding-top: 14px; }
+  .sidebar-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-label button {
+    font-size: 9px;
+    color: var(--saffron);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+  }
+  .filter-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748B'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+  .filter-select:focus { outline: none; border-color: var(--saffron); }
+
+  .filter-multicheck {
+    max-height: 130px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px;
+    background: var(--bg);
+  }
+  .filter-multicheck label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .filter-multicheck label:hover { background: var(--saffron-pale); }
+  .filter-multicheck input[type=checkbox] { accent-color: var(--saffron); }
+
+  .search-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    margin-bottom: 6px;
+    background: var(--bg);
+  }
+  .search-input:focus { outline: none; border-color: var(--saffron); }
+
+  .active-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--saffron);
+    color: white;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    margin-left: 4px;
+  }
+  .reset-all-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    padding: 6px;
+    border-radius: 4px;
+    color: var(--slate);
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .reset-all-btn:hover { border-color: var(--saffron); color: var(--saffron); }
+
+  /* ─── MAIN CONTENT ───────────────────────────── */
+  .main { padding: 20px 20px 40px; overflow: hidden; }
+
+  /* ─── TABS ───────────────────────────────────── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 9px 18px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    color: var(--slate);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--navy); }
+  .tab-btn.active { color: var(--saffron); border-bottom-color: var(--saffron); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── KPI CARDS ──────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--saffron);
+  }
+  .kpi-card.navy::before { background: var(--navy); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.red::before { background: var(--red); }
+
+  .kpi-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .kpi-sub {
+    font-size: 10px;
+    color: var(--slate);
+    margin-top: 4px;
+  }
+
+  /* ─── CHARTS ROW ─────────────────────────────── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .chart-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 10px;
+  }
+  .chart-wrap { position: relative; height: 160px; }
+
+  .charts-row-2 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .chart-wrap-tall { position: relative; height: 200px; }
+
+  /* ─── DATA TABLE ─────────────────────────────── */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .table-toolbar {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .table-title {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .table-toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .result-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--slate);
+  }
+  .col-toggle-btn, .export-btn {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .export-btn { background: var(--navy); color: white; border-color: var(--navy); }
+  .export-btn:hover { background: var(--navy-mid); }
+
+  .table-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  thead th {
+    background: var(--navy);
+    color: white;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { background: var(--navy-mid); }
+  thead th.sorted-asc::after { content: ' ↑'; opacity: 0.7; }
+  thead th.sorted-desc::after { content: ' ↓'; opacity: 0.7; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--saffron-pale); }
+  tbody td { padding: 6px 10px; vertical-align: top; max-width: 200px; }
+  td.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-green { background: #DCFCE7; color: #166534; }
+  .badge-amber { background: #FEF3C7; color: #92400E; }
+  .badge-red { background: #FEE2E2; color: #991B1B; }
+  .badge-blue { background: #DBEAFE; color: #1E40AF; }
+  .badge-grey { background: #F1F5F9; color: #475569; }
+  .badge-navy { background: #E0E7FF; color: #1E40AF; }
+
+  /* ─── DEPT BREAKDOWN TAB ─────────────────────── */
+  .dept-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+  }
+  .dept-controls-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--slate);
+    white-space: nowrap;
+  }
+  .dept-sort-btn {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .dept-sort-btn.active {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+  .dept-group-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--slate);
+  }
+  .dept-group-toggle select {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+  }
+  .dept-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .dept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .dept-card:hover { border-color: var(--saffron); box-shadow: 0 2px 8px rgba(232,98,26,0.12); }
+  .dept-card-name { font-weight: 500; font-size: 12px; margin-bottom: 5px; }
+  .dept-stat-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dept-stat { font-size: 10px; color: var(--slate); }
+  .dept-stat strong { color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .dept-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .dept-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .dept-rank {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--slate);
+    opacity: 0.5;
+  }
+
+  /* ─── CADRE DETAIL PANEL ─────────────────────── */
+  .cadre-detail-panel {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--saffron);
+    border-radius: 0 0 6px 6px;
+    background: var(--surface);
+    display: none;
+    padding: 0;
+    overflow: hidden;
+  }
+  .cadre-detail-panel.open { display: block; }
+  .cdp-header {
+    background: var(--navy);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cdp-title { font-size: 13px; font-weight: 600; }
+  .cdp-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; }
+  .cdp-close {
+    background: none; border: none; color: white;
+    font-size: 18px; cursor: pointer; opacity: 0.6; line-height: 1;
+  }
+  .cdp-close:hover { opacity: 1; }
+  .cdp-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .cdp-section {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .cdp-section:last-child { border-right: none; }
+  .cdp-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 8px;
+  }
+  .cdp-field { margin-bottom: 8px; }
+  .cdp-field-key { font-size: 10px; color: var(--slate); margin-bottom: 2px; }
+  .cdp-field-val { font-size: 12px; color: var(--text); line-height: 1.4; }
+  .cdp-field-val.rr-text {
+    font-size: 11px;
+    color: var(--slate);
+    line-height: 1.5;
+    max-height: 80px;
+    overflow-y: auto;
+    border-left: 2px solid var(--border);
+    padding-left: 8px;
+    white-space: pre-wrap;
+  }
+  .cdp-field-val.rr-text.after {
+    border-left-color: var(--saffron);
+  }
+
+  /* ─── TABLE ROW SELECTED ─────────────────────── */
+  tbody tr.selected-row { background: #EEF2FF !important; }
+  tbody tr.selected-row td { color: var(--navy); }
+
+  /* ─── CHART AXIS PICKER ──────────────────────── */
+  .chart-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .chart-axis-select {
+    font-size: 10px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--slate);
+    cursor: pointer;
+  }
+
+  /* ─── RR ANALYSIS TAB ───────────────────────── */
+  .rr-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+
+  /* ─── LINKS TAB ─────────────────────────────── */
+  .links-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    transition: all 0.15s;
+  }
+  .link-card:hover { border-color: var(--saffron); box-shadow: 0 2px 8px rgba(232,98,26,0.1); }
+  .link-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background: var(--saffron-pale);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .link-info-title { font-weight: 600; font-size: 12px; margin-bottom: 3px; }
+  .link-info-sub { font-size: 11px; color: var(--slate); }
+  .link-add-form { margin-top: 16px; display: flex; gap: 8px; }
+  .link-add-form input { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; }
+  .link-add-form button { background: var(--navy); color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'IBM Plex Sans', sans-serif; }
+
+  /* ─── COL SELECTOR MODAL ─────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal-title { font-weight: 600; margin-bottom: 14px; font-size: 14px; }
+  .modal-col-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 14px; }
+  .modal-col-list label { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 3px; }
+  .modal-col-list input { accent-color: var(--saffron); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-footer button { padding: 6px 14px; border-radius: 4px; font-size: 12px; font-family: 'IBM Plex Sans', sans-serif; cursor: pointer; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--slate); }
+  .btn-apply { background: var(--navy); color: white; border: none; }
+
+  /* ─── LOADING STATE ──────────────────────────── */
+  .load-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--slate);
+  }
+  .load-icon { font-size: 36px; margin-bottom: 14px; }
+  .load-title { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .load-sub { font-size: 12px; color: var(--slate); max-width: 320px; line-height: 1.6; }
+
+  .no-data { padding: 30px; text-align: center; color: var(--slate); font-size: 12px; }
+
+  /* ─── RESPONSIVE TWEAKS ──────────────────────── */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .charts-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">GAD · GoM</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title">Cadre Reforms Dashboard</span>
+  </div>
+  <div class="topbar-right" id="topbar-right">
+    <span class="data-source-badge" id="source-badge">Not signed in</span>
+    <span class="last-refresh" id="last-refresh">—</span>
+    <div id="auth-controls">
+      <button class="btn-signin" onclick="signIn()">🔑 Sign in with Microsoft</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">Connecting…</div>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Search Cadre
+      </div>
+      <input type="text" class="search-input" id="search-input" placeholder="Type cadre name..." oninput="applyFilters()">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Department
+        <button onclick="clearFilter('dept-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="dept-filter" onchange="applyFilters()">
+        <option value="">All Departments</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Establishment
+        <button onclick="clearFilter('est-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="est-filter" onchange="applyFilters()">
+        <option value="">All Establishments</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Group
+        <button onclick="clearFilter('group-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="group-filter" onchange="applyFilters()">
+        <option value="">All Groups</option>
+        <option>A</option>
+        <option>B (Gazetted)</option>
+        <option>B (Non Gazetted)</option>
+        <option>C</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Exam Bucket
+        <button onclick="clearFilter('bucket-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="bucket-filter" onchange="applyFilters()">
+        <option value="">All Buckets</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Exam Scheme
+        <button onclick="clearFilter('scheme-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="scheme-filter" onchange="applyFilters()">
+        <option value="">All Schemes</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Cadre Status
+        <button onclick="clearFilter('status-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="status-filter" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Akrutibandh Status
+        <button onclick="clearFilter('akruti-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="akruti-filter" onchange="applyFilters()">
+        <option value="">All</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Requisition Status
+        <button onclick="clearFilter('req-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="req-filter" onchange="applyFilters()">
+        <option value="">All</option>
+        <option>Sent</option>
+        <option>Not Sent</option>
+        <option>Yes</option>
+        <option>-</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Roster Updated
+        <button onclick="clearFilter('roster-filter')">Clear</button>
+      </div>
+      <select class="filter-select" id="roster-filter" onchange="applyFilters()">
+        <option value="">All</option>
+        <option>Yes</option>
+        <option>No</option>
+        <option>OS</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">RR Change Status<button onclick="clearFilter('rr-change-filter')">Clear</button></div>
+      <select class="filter-select" id="rr-change-filter" onchange="applyFilters()">
+        <option value="">All</option>
+        <option>Changed</option>
+        <option>No Change</option>
+        <option>GAD Rules Apply</option>
+        <option>Unknown</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <button class="reset-all-btn" onclick="resetAllFilters()">↺ Reset All Filters</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+      <button class="tab-btn" onclick="switchTab('data')">Data Explorer</button>
+      <button class="tab-btn" onclick="switchTab('dept')">Dept. Breakdown</button>
+      <button class="tab-btn" onclick="switchTab('rr')">RR Analysis</button>
+      <button class="tab-btn" onclick="switchTab('links')">Linked Files</button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="tab-overview">
+      <div id="no-data-state" class="load-state">
+        <div class="load-icon">🔑</div>
+        <div class="load-title">Sign in to load data</div>
+        <div class="load-sub">Click <strong>Sign in with Microsoft</strong> in the top right. The dashboard will automatically fetch the latest Complete Bucketing file from SharePoint — no manual upload needed.</div>
+      </div>
+      <div id="dashboard-content" style="display:none">
+        <!-- KPI Row -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Cadres</div>
+            <div class="kpi-value" id="kpi-total">—</div>
+            <div class="kpi-sub" id="kpi-total-sub">in current view</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Active Cadres</div>
+            <div class="kpi-value" id="kpi-active">—</div>
+            <div class="kpi-sub" id="kpi-active-pct">—</div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-label">Requisitions Sent</div>
+            <div class="kpi-value" id="kpi-req-sent">—</div>
+            <div class="kpi-sub" id="kpi-req-pct">—</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Roster Updated</div>
+            <div class="kpi-value" id="kpi-roster">—</div>
+            <div class="kpi-sub" id="kpi-roster-pct">—</div>
+          </div>
+          <div class="kpi-card navy">
+            <div class="kpi-label">RR Changed</div>
+            <div class="kpi-value" id="kpi-rr">—</div>
+            <div class="kpi-sub" id="kpi-rr-pct">—</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Departments</div>
+            <div class="kpi-value" id="kpi-depts">—</div>
+            <div class="kpi-sub">in current view</div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Cadres by Group</div>
+            <div class="chart-wrap"><canvas id="chart-group"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Requisition Status</div>
+            <div class="chart-wrap"><canvas id="chart-req"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Akrutibandh Status</div>
+            <div class="chart-wrap"><canvas id="chart-akruti"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="charts-row-2">
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <span class="chart-title">Top 15 Departments by</span>
+              <select class="chart-axis-select" id="dept-chart-axis" onchange="updateCharts()">
+                <option value="total">Total Cadres</option>
+                <option value="active">Active Cadres</option>
+                <option value="reqSent">Requisitions Sent</option>
+                <option value="rosterYes">Roster Updated</option>
+                <option value="rrChanged">RR Changed</option>
+              </select>
+            </div>
+            <div class="chart-wrap-tall"><canvas id="chart-dept"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">RR Change Status</div>
+            <div class="chart-wrap-tall"><canvas id="chart-rr"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA EXPLORER TAB -->
+    <div class="tab-panel" id="tab-data">
+      <div class="table-card">
+        <div class="table-toolbar">
+          <span class="table-title">Cadre Data Explorer</span>
+          <div class="table-toolbar-right">
+            <span class="result-count" id="result-count">0 records</span>
+            <button class="col-toggle-btn" onclick="openColModal()">⚙ Columns</button>
+            <button class="export-btn" onclick="exportToExcel()">⬇ Export Excel</button>
+          </div>
+        </div>
+        <div class="table-scroll" id="table-scroll-wrap">
+          <table id="data-table">
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+          <div class="no-data" id="table-no-data" style="display:none">Load Excel data to explore cadres.</div>
+        </div>
+      </div>
+
+      <!-- CADRE DETAIL PANEL -->
+      <div class="cadre-detail-panel" id="cadre-detail-panel">
+        <div class="cdp-header">
+          <div>
+            <div class="cdp-title" id="cdp-title">—</div>
+            <div class="cdp-meta" id="cdp-meta">—</div>
+          </div>
+          <button class="cdp-close" onclick="closeCadrePanel()">✕</button>
+        </div>
+        <div class="cdp-body">
+          <div class="cdp-section">
+            <div class="cdp-section-label">Cadre Info</div>
+            <div class="cdp-field"><div class="cdp-field-key">Pay Scale</div><div class="cdp-field-val" id="cdp-pay">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Exam Bucket</div><div class="cdp-field-val" id="cdp-bucket">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Exam Scheme</div><div class="cdp-field-val" id="cdp-scheme">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Cadre Status</div><div class="cdp-field-val" id="cdp-status">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Dept. Response</div><div class="cdp-field-val" id="cdp-dept-response">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Vacancy — Updated (9 Feb 26)</div><div class="cdp-field-val" id="cdp-vacancy">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Vacancy — After Akrutibandh</div><div class="cdp-field-val" id="cdp-vacancy-ak">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Vacancy Proportion</div><div class="cdp-field-val" id="cdp-vacancy-prop">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Promotion : DR Ratio</div><div class="cdp-field-val" id="cdp-ratio">—</div></div>
+          </div>
+          <div class="cdp-section">
+            <div class="cdp-section-label">Recruitment & Roster</div>
+            <div class="cdp-field"><div class="cdp-field-key">Akrutibandh Status</div><div class="cdp-field-val" id="cdp-akruti">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Akrutibandh Date</div><div class="cdp-field-val" id="cdp-akruti-date">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Requisition Status</div><div class="cdp-field-val" id="cdp-req">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Requisition Remarks</div><div class="cdp-field-val" id="cdp-req-remarks">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Roster Updated</div><div class="cdp-field-val" id="cdp-roster">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">Roster Remarks</div><div class="cdp-field-val" id="cdp-roster-remarks">—</div></div>
+          </div>
+          <div class="cdp-section">
+            <div class="cdp-section-label">Recruitment Rules</div>
+            <div class="cdp-field"><div class="cdp-field-key">RR Number</div><div class="cdp-field-val" id="cdp-rr-num">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">RR Date</div><div class="cdp-field-val" id="cdp-rr-date">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">RR Change Status</div><div class="cdp-field-val" id="cdp-rr-change">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">RR Before (Dept Provided)</div><div class="cdp-field-val rr-text" id="cdp-rr-before">—</div></div>
+            <div class="cdp-field"><div class="cdp-field-key">RR After (Post Reforms)</div><div class="cdp-field-val rr-text after" id="cdp-rr-after">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPT BREAKDOWN TAB -->
+    <div class="tab-panel" id="tab-dept">
+      <!-- Controls bar -->
+      <div class="dept-controls" id="dept-controls">
+        <span class="dept-controls-label">Sort by</span>
+        <button class="dept-sort-btn active" onclick="setDeptSort('total', this)">Total Cadres</button>
+        <button class="dept-sort-btn" onclick="setDeptSort('active', this)">Active</button>
+        <button class="dept-sort-btn" onclick="setDeptSort('reqSent', this)">Req. Sent</button>
+        <button class="dept-sort-btn" onclick="setDeptSort('rosterYes', this)">Roster Updated</button>
+        <button class="dept-sort-btn" onclick="setDeptSort('rrChanged', this)">RR Changed</button>
+        <button class="dept-sort-btn" onclick="setDeptSort('notSent', this)">Req. Pending</button>
+        <div class="dept-group-toggle">
+          <span>Group by</span>
+          <select id="dept-group-by" onchange="renderDeptGrid()">
+            <option value="Department">Department</option>
+            <option value="Establishment">Establishment</option>
+          </select>
+        </div>
+      </div>
+      <div class="dept-grid" id="dept-grid">
+        <div class="load-state" style="grid-column:1/-1">
+          <div class="load-icon">🏢</div>
+          <div class="load-title">Load data to see breakdown</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RR ANALYSIS TAB -->
+    <div class="tab-panel" id="tab-rr">
+      <div class="rr-split">
+        <div class="chart-card">
+          <div class="chart-title">RR Change by Group</div>
+          <div class="chart-wrap-tall"><canvas id="chart-rr-group"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">RR Change by Exam Bucket</div>
+          <div class="chart-wrap-tall"><canvas id="chart-rr-bucket"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <span class="table-title">RR Details Table</span>
+          <div class="table-toolbar-right">
+            <button class="export-btn" onclick="exportRRTable()">⬇ Export RR Table</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:130px">Department</th>
+                <th style="min-width:100px">Cadre Name</th>
+                <th>Group</th>
+                <th>Pay Scale</th>
+                <th>RR Number</th>
+                <th>RR Date</th>
+                <th style="min-width:120px">RR Change</th>
+              </tr>
+            </thead>
+            <tbody id="rr-table-body"></tbody>
+          </table>
+          <div class="no-data" id="rr-no-data">Load data to see RR analysis.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINKS TAB -->
+    <div class="tab-panel" id="tab-links">
+      <div class="links-grid" id="links-grid">
+        <!-- pre-populated links; user can add more -->
+      </div>
+      <div style="margin-top:16px">
+        <div class="sidebar-label" style="padding:0 0 8px">Add a Linked File / Folder</div>
+        <div class="link-add-form">
+          <input type="text" id="link-name" placeholder="Label (e.g. RR PDFs Folder)">
+          <input type="text" id="link-url" placeholder="OneDrive share URL">
+          <input type="text" id="link-emoji" placeholder="Icon (emoji)" style="max-width:70px">
+          <button onclick="addLink()">Add</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- COL SELECTOR MODAL -->
+<div class="modal-overlay" id="col-modal">
+  <div class="modal">
+    <div class="modal-title">Choose Columns to Display</div>
+    <div class="modal-col-list" id="col-checklist"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeColModal()">Cancel</button>
+      <button class="btn-apply" onclick="applyColModal()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA STATE
+// ─────────────────────────────────────────────
+let RAW_DATA = [];
+let FILTERED_DATA = [];
+let SORT_COL = null;
+let SORT_DIR = 1;
+let CHARTS = {};
+let DEPT_SORT_KEY = 'total';
+let SELECTED_ROW_IDX = null;
+
+const ALL_COLUMNS = [
+  { key: 'SNo',               label: '#',               show: true },
+  { key: 'Department',        label: 'Department',       show: true },
+  { key: 'Establishment',     label: 'Establishment',    show: true },
+  { key: 'Group',             label: 'Group',            show: true },
+  { key: 'CadreName',         label: 'Cadre Name',       show: true },
+  { key: 'PayScale',          label: 'Pay Scale',        show: true },
+  { key: 'ExamBucket',        label: 'Exam Bucket',      show: true },
+  { key: 'ExamScheme',        label: 'Exam Scheme',      show: false },
+  { key: 'Status',            label: 'Cadre Status',     show: true },
+  { key: 'AkrutiStatus',      label: 'Akrutibandh',      show: true },
+  { key: 'RequisitionStatus', label: 'Requisition',      show: true },
+  { key: 'RosterUpdated',     label: 'Roster',           show: true },
+  { key: 'RRChangeStatus',    label: 'RR Change',        show: true },
+  { key: 'RRNumber',          label: 'RR Number',        show: false },
+  { key: 'RRDate',            label: 'RR Date',          show: false },
+  { key: 'VacancyUpdated',    label: 'Vacancy (9 Feb 26)',  show: false },
+  { key: 'VacancyAkruti',    label: 'Vacancy (Post Akruti)',show: false },
+  { key: 'DeptResponse',     label: 'Dept. Response',      show: false },
+  { key: 'PromotionDRRatio', label: 'DR:Promo Ratio',      show: false },
+];
+
+// ─────────────────────────────────────────────
+// MICROSOFT GRAPH AUTH + FETCH
+// ─────────────────────────────────────────────
+const GRAPH_CONFIG = {
+  clientId:   'c48d5e23-9767-45e9-ba0f-900b3418d163',
+  tenantId:   '3fa50ba6-5a24-4f02-8065-953c84cb357f',
+  // Direct download URL derived from the SharePoint share link
+  // The share link encodes to a driveItem download via Graph
+  shareUrl:   'https://qcin-my.sharepoint.com/:x:/g/personal/abijeet_qcin_org/IQDCadFV-d7rR6TiQTaABVeiAflYtRZ9AU6TadD2JurWazA?e=HYRBoa',
+};
+
+const msalApp = new msal.PublicClientApplication({
+  auth: {
+    clientId:    GRAPH_CONFIG.clientId,
+    authority:   `https://login.microsoftonline.com/${GRAPH_CONFIG.tenantId}`,
+    redirectUri: 'https://qcin-my.sharepoint.com/personal/abijeet_qcin_org/Documents/Documents/gad_dashboard.html',
+  },
+  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true },
+});
+
+// Handle redirect after login
+msalApp.handleRedirectPromise().then(resp => {
+  if (resp) {
+    setSignedIn(resp.account);
+    fetchExcelFromGraph(resp.accessToken);
+  } else {
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length > 0) {
+      // Already signed in — silently get token
+      setSignedIn(accounts[0]);
+      acquireTokenAndFetch(accounts[0]);
+    }
+  }
+}).catch(err => {
+  console.error('MSAL redirect error:', err);
+  showError('Authentication error: ' + err.message);
+});
+
+function signIn() {
+  // Build Graph permission scopes for SharePoint files
+  msalApp.loginRedirect({
+    scopes: ['User.Read', 'Files.Read.All', 'Sites.Read.All'],
+  });
+}
+
+function signOut() {
+  msalApp.logoutRedirect({ postLogoutRedirectUri: window.location.href });
+}
+
+function setSignedIn(account) {
+  const name = account.name || account.username;
+  document.getElementById('source-badge').textContent = name;
+  document.getElementById('auth-controls').innerHTML = `
+    <button class="btn-refresh" onclick="acquireTokenAndFetch(msalApp.getAllAccounts()[0])">↺ Refresh Data</button>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  `;
+}
+
+async function acquireTokenAndFetch(account) {
+  try {
+    const result = await msalApp.acquireTokenSilent({
+      scopes: ['Files.Read.All', 'Sites.Read.All'],
+      account,
+    });
+    await fetchExcelFromGraph(result.accessToken);
+  } catch (e) {
+    // Silent token acquisition failed — fall back to interactive
+    msalApp.acquireTokenRedirect({
+      scopes: ['Files.Read.All', 'Sites.Read.All'],
+      account,
+    });
+  }
+}
+
+async function fetchExcelFromGraph(accessToken) {
+  showLoading('Fetching data from SharePoint…');
+  try {
+    // Encode the SharePoint share URL to a Graph-compatible share ID
+    // Formula: base64url("u!" + shareUrl) → /shares/{id}/driveItem/content
+    const shareId = 'u!' + GRAPH_CONFIG.shareUrl;
+    const b64 = btoa(shareId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const graphUrl = `https://graph.microsoft.com/v1.0/shares/${b64}/driveItem/content`;
+
+    const response = await fetch(graphUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Graph API error ${response.status}: ${await response.text()}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    loadFromBuffer(arrayBuffer);
+
+  } catch (err) {
+    hideLoading();
+    showError('Could not fetch file: ' + err.message);
+    console.error(err);
+  }
+}
+
+function loadFromBuffer(arrayBuffer) {
+  try {
+    showLoading('Parsing Excel data…');
+    const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+    const sheetName = wb.SheetNames.includes('Sheet1') ? 'Sheet1' : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    RAW_DATA = parseRows(raw);
+    populateFilterOptions();
+    applyFilters();
+    document.getElementById('no-data-state').style.display = 'none';
+    document.getElementById('dashboard-content').style.display = 'block';
+    const now = new Date();
+    document.getElementById('last-refresh').textContent =
+      'Refreshed ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    hideLoading();
+  } catch (err) {
+    hideLoading();
+    showError('Error parsing Excel: ' + err.message);
+    console.error(err);
+  }
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg || 'Loading…';
+  document.getElementById('loading-overlay').classList.remove('hidden');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+function showError(msg) {
+  document.getElementById('last-refresh').textContent = '⚠ Error';
+  alert(msg);
+}
+
+// Robust column reader — tries exact key, then normalises whitespace variants
+function col(r, ...keys) {
+  for (const k of keys) {
+    if (r[k] !== undefined && r[k] !== null && r[k] !== '') return str(r[k]);
+  }
+  // fallback: normalise all whitespace in key names and try matching
+  const norm = s => s.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  for (const k of keys) {
+    const target = norm(k);
+    for (const rk of Object.keys(r)) {
+      if (norm(rk) === target) return str(r[rk]);
+    }
+  }
+  return '';
+}
+
+function parseRows(raw) {
+  return raw.map((r, i) => {
+    const afterRR = col(r, 'RR Details (After Reforms)');
+    return {
+      SNo:               i + 1,
+      Department:        col(r, 'Department'),
+      Establishment:     col(r, 'Establishment'),
+      Group:             col(r, 'Group'),
+      CadreName:         col(r, 'Cadre Name'),
+      PayScale:          col(r, 'Pay Scale'),
+      ExamBucket:        col(r, 'Exam Bucket'),
+      ExamScheme:        col(r, 'Exam Scheme'),
+      Status:            col(r, 'To be Reviewed'),
+      AkrutiStatus:      col(r, 'Akrutibandh Status'),
+      AkrutiDate:        col(r, 'Akrutibandh Date'),
+      DeptResponse:      col(r, 'Department Response'),
+      RequisitionStatus: col(r, 'Requisition Status'),
+      RequisitionSent:   col(r, 'Requisition Sent'),
+      RequisitionRemarks:col(r, 'Requisition/ Roster Remarks'),
+      RosterUpdated:     col(r, 'Updated Roster\n (Yes / No)', 'Updated Roster (Yes / No)'),
+      RosterRemarks:     col(r, 'Roster Remarks'),
+      RRNumberRaw:       col(r, 'RR Number'),
+      RRDate:            col(r, 'RR Date'),
+      RRNumber:          col(r, 'RR Number').split('\n')[0],
+      RRBefore:          col(r, 'RR Details - Provided by Depts (Before Reforms)'),
+      RRAfter:           afterRR,
+      RRChangeStatus:    classifyRR(afterRR),
+      VacancyUpdated:    col(r, 'Updated Vacancy\n (9th Feb 26)', 'Updated Vacancy (9th Feb 26)'),
+      VacancyAkruti:     col(r, 'Vancancy (After Akrutibandh Status)', 'Vacancy (After Akrutibandh Status)'),
+      VacancyProportion: col(r, 'Vacancy Proportion'),
+      PromotionDRRatio:  col(r, 'Promotion: DR Ratio'),
+    };
+  });
+}
+
+function str(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toLocaleDateString('en-IN');
+  return String(v).trim();
+}
+
+function classifyRR(val) {
+  if (!val) return 'Unknown';
+  const v = val.trim();
+  if (!v) return 'Unknown';
+  if (v === 'No changes in RR' || v === 'Mode of Recruitment: Internal Promotion') return 'No Change';
+  if (v.includes('GAD') || v === 'Recruitment rules issued by GAD to be followed for this cadre.') return 'GAD Rules Apply';
+  return 'Changed';
+}
+
+// ─────────────────────────────────────────────
+// FILTER POPULATION
+// ─────────────────────────────────────────────
+function populateFilterOptions() {
+  populateSelect('dept-filter', unique(RAW_DATA, 'Department'));
+  populateSelect('est-filter', unique(RAW_DATA, 'Establishment'));
+  populateSelect('bucket-filter', unique(RAW_DATA, 'ExamBucket'));
+  populateSelect('scheme-filter', unique(RAW_DATA, 'ExamScheme'));
+  populateSelect('status-filter', unique(RAW_DATA, 'Status'));
+  populateSelect('akruti-filter', unique(RAW_DATA, 'AkrutiStatus'));
+}
+
+function unique(data, key) {
+  return [...new Set(data.map(r => r[key]).filter(v => v && v !== ''))].sort();
+}
+
+function populateSelect(id, values) {
+  const el = document.getElementById(id);
+  const current = el.value;
+  const firstOpt = el.options[0].outerHTML;
+  el.innerHTML = firstOpt + values.map(v => `<option value="${esc(v)}">${v}</option>`).join('');
+  if (values.includes(current)) el.value = current;
+}
+
+function esc(s) { return s.replace(/"/g, '&quot;'); }
+
+// ─────────────────────────────────────────────
+// FILTERING
+// ─────────────────────────────────────────────
+function getFilterVal(id) { return document.getElementById(id).value; }
+
+function applyFilters() {
+  if (!RAW_DATA.length) return;
+
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const dept = getFilterVal('dept-filter');
+  const est = getFilterVal('est-filter');
+  const group = getFilterVal('group-filter');
+  const bucket = getFilterVal('bucket-filter');
+  const scheme = getFilterVal('scheme-filter');
+  const status = getFilterVal('status-filter');
+  const akruti = getFilterVal('akruti-filter');
+  const req = getFilterVal('req-filter');
+  const roster = getFilterVal('roster-filter');
+  const rrChange = getFilterVal('rr-change-filter');
+
+  FILTERED_DATA = RAW_DATA.filter(r => {
+    if (search && !r.CadreName.toLowerCase().includes(search) && !r.Department.toLowerCase().includes(search)) return false;
+    if (dept && r.Department !== dept) return false;
+    if (est && r.Establishment !== est) return false;
+    if (group && r.Group !== group) return false;
+    if (bucket && r.ExamBucket !== bucket) return false;
+    if (scheme && r.ExamScheme !== scheme) return false;
+    if (status && r.Status !== status) return false;
+    if (akruti && r.AkrutiStatus !== akruti) return false;
+    if (req && r.RequisitionStatus !== req) return false;
+    if (roster && r.RosterUpdated !== roster) return false;
+    if (rrChange && r.RRChangeStatus !== rrChange) return false;
+    return true;
+  });
+
+  updateKPIs();
+  updateCharts();
+  renderTable();
+  renderDeptGrid();
+  renderRRTable();
+}
+
+function clearFilter(id) {
+  document.getElementById(id).value = '';
+  applyFilters();
+}
+
+function resetAllFilters() {
+  ['dept-filter','est-filter','group-filter','bucket-filter','scheme-filter',
+   'status-filter','akruti-filter','req-filter','roster-filter','rr-change-filter'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('search-input').value = '';
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+// KPIs
+// ─────────────────────────────────────────────
+function updateKPIs() {
+  const d = FILTERED_DATA;
+  const n = d.length;
+  const active = d.filter(r => r.Status === 'Active').length;
+  const reqSent = d.filter(r => r.RequisitionStatus === 'Sent' || r.RequisitionStatus === 'Yes').length;
+  const rosterYes = d.filter(r => r.RosterUpdated === 'Yes').length;
+  const rrChanged = d.filter(r => r.RRChangeStatus === 'Changed').length;
+  const depts = new Set(d.map(r => r.Department).filter(Boolean)).size;
+
+  set('kpi-total', n.toLocaleString());
+  set('kpi-active', active.toLocaleString());
+  set('kpi-active-pct', pct(active, n) + ' of total');
+  set('kpi-req-sent', reqSent.toLocaleString());
+  set('kpi-req-pct', pct(reqSent, n) + ' of total');
+  set('kpi-roster', rosterYes.toLocaleString());
+  set('kpi-roster-pct', pct(rosterYes, n) + ' of total');
+  set('kpi-rr', rrChanged.toLocaleString());
+  set('kpi-rr-pct', pct(rrChanged, n) + ' of total');
+  set('kpi-depts', depts.toLocaleString());
+}
+
+function set(id, v) { const el = document.getElementById(id); if(el) el.textContent = v; }
+function pct(a, b) { return b ? Math.round(a/b*100) + '%' : '0%'; }
+
+// ─────────────────────────────────────────────
+// CHARTS
+// ─────────────────────────────────────────────
+const PALETTE = ['#1A2744','#E8621A','#2563EB','#16A34A','#D97706','#9333EA','#0891B2','#DC2626'];
+const PALETTE_SOFT = ['#4A5E8A','#F4956A','#93C5FD','#86EFAC','#FCD34D','#C4B5FD','#67E8F9','#FCA5A5'];
+
+function countBy(data, key) {
+  const m = {};
+  data.forEach(r => { const v = r[key] || 'Unknown'; m[v] = (m[v]||0)+1; });
+  return m;
+}
+
+function makeChart(id, type, labels, values, opts={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: opts.colors || PALETTE.slice(0, labels.length),
+        borderColor: type === 'bar' ? PALETTE[0] : undefined,
+        borderWidth: type === 'bar' ? 0 : 2,
+        borderRadius: type === 'bar' ? 3 : 0,
+        ...(opts.dataset || {})
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: type !== 'bar', position: 'bottom', labels: { font: { size: 10, family: 'IBM Plex Sans' }, boxWidth: 10, padding: 8 } },
+        tooltip: { bodyFont: { family: 'IBM Plex Mono', size: 11 }, titleFont: { family: 'IBM Plex Sans', size: 11 } }
+      },
+      scales: type === 'bar' ? {
+        x: { ticks: { font: { size: 9, family: 'IBM Plex Sans' }, maxRotation: 35 }, grid: { display: false } },
+        y: { ticks: { font: { size: 9, family: 'IBM Plex Mono' } }, grid: { color: '#E2E6ED' } }
+      } : {},
+      ...(opts.extra || {})
+    }
+  });
+}
+
+function updateCharts() {
+  const d = FILTERED_DATA;
+
+  // Group donut
+  const grpMap = countBy(d, 'Group');
+  makeChart('chart-group', 'doughnut', Object.keys(grpMap), Object.values(grpMap), { colors: PALETTE });
+
+  // Req status
+  const reqMap = countBy(d, 'RequisitionStatus');
+  makeChart('chart-req', 'doughnut', Object.keys(reqMap), Object.values(reqMap), { colors: ['#16A34A','#DC2626','#64748B','#D97706'] });
+
+  // Akruti donut
+  const akMap = countBy(d, 'AkrutiStatus');
+  makeChart('chart-akruti', 'doughnut', Object.keys(akMap), Object.values(akMap), { colors: PALETTE_SOFT });
+
+  // Top 15 depts bar — dynamic axis
+  const axisEl = document.getElementById('dept-chart-axis');
+  const axisKey = axisEl ? axisEl.value : 'total';
+  const axisLabels = { total:'Total Cadres', active:'Active Cadres', reqSent:'Req. Sent', rosterYes:'Roster Updated', rrChanged:'RR Changed' };
+
+  const deptStats = buildDeptStats(d, 'Department');
+  const deptSorted = Object.entries(deptStats)
+    .sort((a,b) => (b[1][axisKey]||0) - (a[1][axisKey]||0))
+    .slice(0,15);
+  makeChart('chart-dept', 'bar',
+    deptSorted.map(([k]) => k.length > 22 ? k.slice(0,22)+'…' : k),
+    deptSorted.map(([,v]) => v[axisKey]||0),
+    { colors: Array(15).fill(PALETTE[0]),
+      dataset: { backgroundColor: Array(15).fill('#1A2744') },
+      extra: { indexAxis: 'y', plugins: { legend: { display: false },
+        tooltip: { callbacks: { title: (items) => deptSorted[items[0].dataIndex]?.[0] || '' } }
+      }}
+    }
+  );
+
+  // RR change donut
+  const rrMap = countBy(d, 'RRChangeStatus');
+  makeChart('chart-rr', 'doughnut', Object.keys(rrMap), Object.values(rrMap), {
+    colors: ['#E8621A','#16A34A','#2563EB','#94A3B8']
+  });
+
+  // RR by group (stacked bar)
+  updateRRCharts(d);
+}
+
+function updateRRCharts(d) {
+  // RR by group
+  const groups = ['A','B (Gazetted)','B (Non Gazetted)','C'];
+  const rrTypes = ['Changed','No Change','GAD Rules Apply','Unknown'];
+  const rrColors = ['#E8621A','#16A34A','#2563EB','#94A3B8'];
+  const ctx1 = document.getElementById('chart-rr-group');
+  if (!ctx1) return;
+  if (CHARTS['chart-rr-group']) CHARTS['chart-rr-group'].destroy();
+  CHARTS['chart-rr-group'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: rrTypes.map((t, i) => ({
+        label: t,
+        data: groups.map(g => d.filter(r => r.Group === g && r.RRChangeStatus === t).length),
+        backgroundColor: rrColors[i],
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10, family: 'IBM Plex Sans' }, boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10, family: 'IBM Plex Sans' } } },
+        y: { stacked: true, ticks: { font: { size: 10, family: 'IBM Plex Mono' } }, grid: { color: '#E2E6ED' } }
+      }
+    }
+  });
+
+  // RR by top 8 exam buckets
+  const bucketMap = countBy(d, 'ExamBucket');
+  const topBuckets = Object.entries(bucketMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx2 = document.getElementById('chart-rr-bucket');
+  if (!ctx2) return;
+  if (CHARTS['chart-rr-bucket']) CHARTS['chart-rr-bucket'].destroy();
+  CHARTS['chart-rr-bucket'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: topBuckets.map(([k]) => k.length > 20 ? k.slice(0,20)+'…' : k),
+      datasets: rrTypes.map((t, i) => ({
+        label: t,
+        data: topBuckets.map(([bucket]) => d.filter(r => r.ExamBucket === bucket && r.RRChangeStatus === t).length),
+        backgroundColor: rrColors[i],
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10, family: 'IBM Plex Sans' }, boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10, family: 'IBM Plex Mono' } }, grid: { color: '#E2E6ED' } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, family: 'IBM Plex Sans' } } }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// DATA TABLE
+// ─────────────────────────────────────────────
+const visibleCols = () => ALL_COLUMNS.filter(c => c.show);
+
+let SORTED_ROWS = []; // track sorted order for row selection
+
+function renderTable() {
+  const cols = visibleCols();
+  const head = document.getElementById('table-head');
+  const body = document.getElementById('table-body');
+  const nd = document.getElementById('table-no-data');
+
+  // Header
+  head.innerHTML = '<tr>' + cols.map(c =>
+    `<th onclick="sortTable('${c.key}')" class="${SORT_COL===c.key ? (SORT_DIR===1?'sorted-asc':'sorted-desc') : ''}">${c.label}</th>`
+  ).join('') + '</tr>';
+
+  let data = [...FILTERED_DATA];
+  if (SORT_COL) {
+    data.sort((a,b) => {
+      const va = a[SORT_COL]||'', vb = b[SORT_COL]||'';
+      return SORT_DIR * (va < vb ? -1 : va > vb ? 1 : 0);
+    });
+  }
+
+  const MAX_ROWS = 500;
+  SORTED_ROWS = data.slice(0, MAX_ROWS);
+
+  if (!SORTED_ROWS.length) {
+    body.innerHTML = '';
+    nd.style.display = 'block';
+    document.getElementById('result-count').textContent = '0 records';
+    closeCadrePanel();
+    return;
+  }
+  nd.style.display = 'none';
+  document.getElementById('result-count').textContent =
+    data.length.toLocaleString() + ' records' + (data.length > MAX_ROWS ? ` (showing ${MAX_ROWS})` : '');
+
+  body.innerHTML = SORTED_ROWS.map((r, rowIdx) => {
+    const isSelected = SELECTED_ROW_IDX === rowIdx;
+    return '<tr class="' + (isSelected ? 'selected-row' : '') + '" onclick="selectRow(' + rowIdx + ')" style="cursor:pointer">' +
+      cols.map(c => {
+        let val = r[c.key];
+        if (c.key === 'Status') return `<td>${statusBadge(val)}</td>`;
+        if (c.key === 'RRChangeStatus') return `<td>${rrBadge(val)}</td>`;
+        if (c.key === 'RequisitionStatus') return `<td>${reqBadge(val)}</td>`;
+        if (c.key === 'RosterUpdated') return `<td>${rosterBadge(val)}</td>`;
+        if (c.key === 'AkrutiStatus') return `<td class="truncate" style="max-width:130px" title="${esc(val)}">${val}</td>`;
+        if (c.key === 'CadreName' || c.key === 'ExamBucket' || c.key === 'ExamScheme') return `<td class="truncate" style="max-width:160px" title="${esc(val)}">${val}</td>`;
+        return `<td class="truncate">${val}</td>`;
+      }).join('') + '</tr>';
+  }).join('');
+}
+
+function selectRow(rowIdx) {
+  // Toggle off if same row clicked again
+  if (SELECTED_ROW_IDX === rowIdx) {
+    SELECTED_ROW_IDX = null;
+    closeCadrePanel();
+    // Clear selection highlight
+    document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('selected-row'));
+    return;
+  }
+  SELECTED_ROW_IDX = rowIdx;
+  const r = SORTED_ROWS[rowIdx];
+
+  // Highlight row
+  document.querySelectorAll('#table-body tr').forEach((tr, i) => {
+    tr.classList.toggle('selected-row', i === rowIdx);
+  });
+
+  // Populate panel
+  document.getElementById('cdp-title').textContent = r.CadreName || '—';
+  document.getElementById('cdp-meta').textContent =
+    [r.Department, r.Establishment, 'Group ' + r.Group].filter(Boolean).join(' · ');
+
+  document.getElementById('cdp-pay').textContent = r.PayScale || '—';
+  document.getElementById('cdp-bucket').textContent = r.ExamBucket || '—';
+  document.getElementById('cdp-scheme').textContent = r.ExamScheme || '—';
+  document.getElementById('cdp-status').innerHTML = statusBadge(r.Status);
+  document.getElementById('cdp-dept-response').textContent = r.DeptResponse || '—';
+  document.getElementById('cdp-vacancy').textContent = r.VacancyUpdated || '—';
+  document.getElementById('cdp-vacancy-ak').textContent = r.VacancyAkruti || '—';
+  document.getElementById('cdp-vacancy-prop').textContent = r.VacancyProportion || '—';
+  document.getElementById('cdp-ratio').textContent = r.PromotionDRRatio || '—';
+
+  document.getElementById('cdp-akruti').textContent = r.AkrutiStatus || '—';
+  document.getElementById('cdp-akruti-date').textContent = r.AkrutiDate || '—';
+  document.getElementById('cdp-req').innerHTML = reqBadge(r.RequisitionStatus);
+  document.getElementById('cdp-req-remarks').textContent = r.RequisitionRemarks || '—';
+  document.getElementById('cdp-roster').innerHTML = rosterBadge(r.RosterUpdated);
+  document.getElementById('cdp-roster-remarks').textContent = r.RosterRemarks || '—';
+
+  document.getElementById('cdp-rr-num').textContent = r.RRNumberRaw || '—';
+  document.getElementById('cdp-rr-date').textContent = r.RRDate || '—';
+  document.getElementById('cdp-rr-change').innerHTML = rrBadge(r.RRChangeStatus);
+  document.getElementById('cdp-rr-before').textContent = r.RRBefore || '—';
+  document.getElementById('cdp-rr-after').textContent = r.RRAfter || '—';
+
+  // Open panel and scroll it into view
+  const panel = document.getElementById('cadre-detail-panel');
+  panel.classList.add('open');
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+function closeCadrePanel() {
+  SELECTED_ROW_IDX = null;
+  document.getElementById('cadre-detail-panel').classList.remove('open');
+  document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('selected-row'));
+}
+
+function sortTable(col) {
+  if (SORT_COL === col) SORT_DIR *= -1;
+  else { SORT_COL = col; SORT_DIR = 1; }
+  renderTable();
+}
+
+function statusBadge(v) {
+  const map = {
+    'Active': 'green', 'Post not sanctioned': 'red', 'Contractual': 'amber',
+    'Deputation': 'navy', 'Promotion': 'blue', 'Repeat Entry': 'grey',
+    'To be Outsourced': 'amber', 'Different Recruitment': 'grey'
+  };
+  const cls = map[v] || 'grey';
+  return `<span class="badge badge-${cls}">${v||'—'}</span>`;
+}
+function rrBadge(v) {
+  const map = { 'Changed':'amber', 'No Change':'green', 'GAD Rules Apply':'blue', 'Unknown':'grey' };
+  return `<span class="badge badge-${map[v]||'grey'}">${v||'—'}</span>`;
+}
+function reqBadge(v) {
+  const map = { 'Sent':'green', 'Yes':'green', 'Not Sent':'red', '-':'grey' };
+  return `<span class="badge badge-${map[v]||'grey'}">${v||'—'}</span>`;
+}
+function rosterBadge(v) {
+  const map = { 'Yes':'green', 'No':'red', 'OS':'amber' };
+  return `<span class="badge badge-${map[v]||'grey'}">${v||'—'}</span>`;
+}
+
+// ─────────────────────────────────────────────
+// DEPT GRID
+// ─────────────────────────────────────────────
+function buildDeptStats(data, groupKey) {
+  const map = {};
+  data.forEach(r => {
+    const key = r[groupKey];
+    if (!key) return;
+    if (!map[key]) map[key] = { total:0, active:0, reqSent:0, rosterYes:0, rrChanged:0, notSent:0 };
+    map[key].total++;
+    if (r.Status === 'Active') map[key].active++;
+    if (r.RequisitionStatus === 'Sent' || r.RequisitionStatus === 'Yes') map[key].reqSent++;
+    else if (r.RequisitionStatus === 'Not Sent') map[key].notSent++;
+    if (r.RosterUpdated === 'Yes') map[key].rosterYes++;
+    if (r.RRChangeStatus === 'Changed') map[key].rrChanged++;
+  });
+  return map;
+}
+
+const SORT_META = {
+  total:     { label: 'Total Cadres',  color: '#1A2744' },
+  active:    { label: 'Active',         color: '#16A34A' },
+  reqSent:   { label: 'Req. Sent',      color: '#2563EB' },
+  rosterYes: { label: 'Roster Updated', color: '#D97706' },
+  rrChanged: { label: 'RR Changed',     color: '#E8621A' },
+  notSent:   { label: 'Req. Pending',   color: '#DC2626' },
+};
+
+function setDeptSort(key, btn) {
+  DEPT_SORT_KEY = key;
+  document.querySelectorAll('.dept-sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDeptGrid();
+}
+
+function renderDeptGrid() {
+  const grid = document.getElementById('dept-grid');
+  if (!FILTERED_DATA.length) return;
+
+  const groupKey = (document.getElementById('dept-group-by')?.value) || 'Department';
+  const stats = buildDeptStats(FILTERED_DATA, groupKey);
+  const sortKey = DEPT_SORT_KEY;
+  const meta = SORT_META[sortKey] || SORT_META.total;
+  const maxVal = Math.max(1, ...Object.values(stats).map(s => s[sortKey]||0));
+  const sorted = Object.entries(stats).sort((a,b) => (b[1][sortKey]||0) - (a[1][sortKey]||0));
+
+  grid.innerHTML = sorted.map(([name, s], rank) => {
+    const pct = Math.round((s[sortKey]||0) / maxVal * 100);
+    const filterKey = groupKey === 'Department' ? 'dept-filter' : 'est-filter';
+    return `
+    <div class="dept-card" onclick="drillGroup('${filterKey}','${esc(name)}')">
+      <span class="dept-rank">#${rank+1}</span>
+      <div class="dept-card-name">${name}</div>
+      <div class="dept-stat-row">
+        <span class="dept-stat"><strong>${s.total}</strong> total</span>
+        <span class="dept-stat"><strong>${s.active}</strong> active</span>
+        <span class="dept-stat"><strong>${s.reqSent}</strong> req ✓</span>
+        <span class="dept-stat"><strong>${s.rosterYes}</strong> roster ✓</span>
+        <span class="dept-stat"><strong>${s.rrChanged}</strong> rr chg</span>
+      </div>
+      <div style="margin-top:5px;font-size:10px;color:${meta.color};font-weight:600">
+        ${meta.label}: ${s[sortKey]||0}
+      </div>
+      <div class="dept-bar">
+        <div class="dept-bar-fill" style="width:${pct}%;background:${meta.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function drillGroup(filterId, value) {
+  document.getElementById(filterId).value = value;
+  switchTab('data');
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+// RR TABLE
+// ─────────────────────────────────────────────
+function renderRRTable() {
+  const body = document.getElementById('rr-table-body');
+  const nd = document.getElementById('rr-no-data');
+  if (!FILTERED_DATA.length) { nd.style.display='block'; body.innerHTML=''; return; }
+  nd.style.display='none';
+  body.innerHTML = FILTERED_DATA.slice(0,300).map(r => `<tr>
+    <td class="truncate" style="max-width:140px">${r.Department}</td>
+    <td class="truncate" style="max-width:140px">${r.CadreName}</td>
+    <td>${r.Group}</td>
+    <td>${r.PayScale}</td>
+    <td class="truncate" style="max-width:120px" title="${esc(r.RRNumber)}">${r.RRNumber||'—'}</td>
+    <td>${r.RRDate||'—'}</td>
+    <td>${rrBadge(r.RRChangeStatus)}</td>
+  </tr>`).join('');
+}
+
+function exportRRTable() {
+  const rows = FILTERED_DATA.map(r => ({
+    Department: r.Department, Establishment: r.Establishment,
+    Group: r.Group, 'Cadre Name': r.CadreName, 'Pay Scale': r.PayScale,
+    'RR Number': r.RRNumber, 'RR Date': r.RRDate,
+    'RR Change Status': r.RRChangeStatus,
+    'RR Before (Dept)': r.RRBefore, 'RR After (Reforms)': r.RRAfter,
+  }));
+  downloadXLSX(rows, 'RR_Analysis');
+}
+
+// ─────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────
+function exportToExcel() {
+  const cols = visibleCols();
+  const rows = FILTERED_DATA.map(r => {
+    const row = {};
+    cols.forEach(c => row[c.label] = r[c.key]);
+    return row;
+  });
+  downloadXLSX(rows, 'Cadre_Dashboard_Export');
+}
+
+function downloadXLSX(rows, name) {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, `${name}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ─────────────────────────────────────────────
+// COLUMN MODAL
+// ─────────────────────────────────────────────
+function openColModal() {
+  const list = document.getElementById('col-checklist');
+  list.innerHTML = ALL_COLUMNS.map((c,i) => `
+    <label><input type="checkbox" data-i="${i}" ${c.show?'checked':''}> ${c.label}</label>
+  `).join('');
+  document.getElementById('col-modal').classList.add('open');
+}
+function closeColModal() { document.getElementById('col-modal').classList.remove('open'); }
+function applyColModal() {
+  document.querySelectorAll('#col-checklist input').forEach(cb => {
+    ALL_COLUMNS[+cb.dataset.i].show = cb.checked;
+  });
+  closeColModal();
+  renderTable();
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['overview','data','dept','rr','links'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+
+  // Resize charts when switching to overview
+  if (name === 'overview') setTimeout(() => Object.values(CHARTS).forEach(c => c.resize()), 50);
+  if (name === 'rr') setTimeout(() => {
+    if (CHARTS['chart-rr-group']) CHARTS['chart-rr-group'].resize();
+    if (CHARTS['chart-rr-bucket']) CHARTS['chart-rr-bucket'].resize();
+  }, 50);
+}
+
+// ─────────────────────────────────────────────
+// LINKS
+// ─────────────────────────────────────────────
+const DEFAULT_LINKS = [
+  { name: 'Complete Bucketing File', url: '#', emoji: '📊', sub: 'OneDrive · Master Excel' },
+  { name: 'RR PDFs Folder', url: '#', emoji: '📁', sub: 'OneDrive · Department RRs' },
+  { name: 'GAD Oversight Platform', url: '#', emoji: '🖥', sub: 'HTML Dashboard' },
+  { name: 'Department PPT Responses', url: '#', emoji: '📑', sub: 'OneDrive · 45 Depts' },
+  { name: 'MPSC Requisitions', url: '#', emoji: '📋', sub: 'OneDrive · Requisition Files' },
+  { name: 'Master Aligned Dataset', url: '#', emoji: '🔗', sub: 'OneDrive · Master_Aligned_Dataset' },
+];
+
+let savedLinks = JSON.parse(localStorage.getItem('gad_links') || 'null') || DEFAULT_LINKS;
+
+function renderLinks() {
+  document.getElementById('links-grid').innerHTML = savedLinks.map((l, i) => `
+    <a class="link-card" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <div class="link-icon">${l.emoji}</div>
+      <div>
+        <div class="link-info-title">${l.name}</div>
+        <div class="link-info-sub">${l.sub || l.url}</div>
+      </div>
+      <button onclick="removeLink(event,${i})" style="margin-left:auto;background:none;border:none;color:#94A3B8;cursor:pointer;font-size:14px;flex-shrink:0">✕</button>
+    </a>
+  `).join('');
+}
+
+function addLink() {
+  const name = document.getElementById('link-name').value.trim();
+  const url = document.getElementById('link-url').value.trim();
+  const emoji = document.getElementById('link-emoji').value.trim() || '🔗';
+  if (!name || !url) { alert('Please enter both a label and URL.'); return; }
+  savedLinks.push({ name, url, emoji, sub: url });
+  localStorage.setItem('gad_links', JSON.stringify(savedLinks));
+  renderLinks();
+  document.getElementById('link-name').value = '';
+  document.getElementById('link-url').value = '';
+  document.getElementById('link-emoji').value = '';
+}
+
+function removeLink(e, i) {
+  e.preventDefault();
+  savedLinks.splice(i, 1);
+  localStorage.setItem('gad_links', JSON.stringify(savedLinks));
+  renderLinks();
+}
+
+// Init
+renderLinks();
+</script>
+</body>
+</html>
