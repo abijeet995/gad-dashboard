@@ -6,7 +6,6 @@
 <title>GAD Cadre Reforms Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -97,54 +96,20 @@
   .btn-upload:hover { background: #c95516; }
   #file-input { display: none; }
 
-  /* ─── AUTH STATES ─────────────────────────────── */
-  .btn-signin {
-    background: var(--saffron);
-    color: white;
-    border: none;
-    padding: 5px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .btn-signin:hover { background: #c95516; }
-  .btn-signout {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.7);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    cursor: pointer;
-  }
-  .btn-signout:hover { border-color: rgba(255,255,255,0.5); color: white; }
+  /* ─── TOPBAR REFRESH ──────────────────────────── */
   .btn-refresh {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.15);
     color: rgba(255,255,255,0.8);
-    padding: 4px 10px;
+    padding: 4px 12px;
     border-radius: 4px;
     font-size: 11px;
     font-family: 'IBM Plex Sans', sans-serif;
     cursor: pointer;
   }
-  .btn-refresh:hover { background: rgba(255,255,255,0.15); }
-  .user-pill {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    padding: 3px 10px;
-    border-radius: 20px;
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .btn-refresh:hover { background: rgba(255,255,255,0.18); color: white; }
+
+  /* ─── LOADING OVERLAY ─────────────────────────── */
   .loading-overlay {
     position: fixed; inset: 0;
     background: rgba(26,39,68,0.82);
@@ -727,18 +692,16 @@
     <span class="topbar-title">Cadre Reforms Dashboard</span>
   </div>
   <div class="topbar-right" id="topbar-right">
-    <span class="data-source-badge" id="source-badge">Not signed in</span>
-    <span class="last-refresh" id="last-refresh">—</span>
-    <div id="auth-controls">
-      <button class="btn-signin" onclick="signIn()">🔑 Sign in with Microsoft</button>
-    </div>
+    <span class="data-source-badge" id="source-badge">Complete_Bucketing.xlsx · GitHub</span>
+    <span class="last-refresh" id="last-refresh">Loading…</span>
+    <button class="btn-refresh" onclick="fetchExcel()">↺ Refresh</button>
   </div>
 </div>
 
 <!-- Loading overlay -->
 <div class="loading-overlay hidden" id="loading-overlay">
   <div class="spinner"></div>
-  <div class="loading-msg" id="loading-msg">Connecting…</div>
+  <div class="loading-msg" id="loading-msg">Loading data…</div>
 </div>
 
 <div class="shell">
@@ -881,9 +844,9 @@
     <!-- OVERVIEW TAB -->
     <div class="tab-panel active" id="tab-overview">
       <div id="no-data-state" class="load-state">
-        <div class="load-icon">🔑</div>
-        <div class="load-title">Sign in to load data</div>
-        <div class="load-sub">Click <strong>Sign in with Microsoft</strong> in the top right. The dashboard will automatically fetch the latest Complete Bucketing file from SharePoint — no manual upload needed.</div>
+        <div class="load-icon">⏳</div>
+        <div class="load-title">Loading data…</div>
+        <div class="load-sub">Fetching the latest Complete Bucketing file from GitHub. This only takes a moment.</div>
       </div>
       <div id="dashboard-content" style="display:none">
         <!-- KPI Row -->
@@ -1153,140 +1116,32 @@ const ALL_COLUMNS = [
 ];
 
 // ─────────────────────────────────────────────
-// MICROSOFT GRAPH AUTH + FETCH
+// DATA FETCH — GitHub Raw
 // ─────────────────────────────────────────────
-const GRAPH_CONFIG = {
-  clientId:   'c48d5e23-9767-45e9-ba0f-900b3418d163',
-  tenantId:   '3fa50ba6-5a24-4f02-8065-953c84cb357f',
-  shareUrl:   'https://qcin-my.sharepoint.com/:x:/g/personal/abijeet_qcin_org/IQDCadFV-d7rR6TiQTaABVeiAflYtRZ9AU6TadD2JurWazA?e=HYRBoa',
-};
+// When you update the Excel, just upload the new file to GitHub
+// (same repo, same filename) and click Refresh — that's it.
+const EXCEL_URL =
+  'https://raw.githubusercontent.com/abijeet995/gad-dashboard/main/Complete_Bucketing.xlsx';
 
-const msalConfig = {
-  auth: {
-    clientId:    GRAPH_CONFIG.clientId,
-    authority:   `https://login.microsoftonline.com/${GRAPH_CONFIG.tenantId}`,
-    redirectUri: 'https://abijeet995.github.io/gad-dashboard/',
-  },
-  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true },
-};
-
-const SCOPES = ['User.Read', 'Files.Read.All', 'Sites.Read.All'];
-
-let msalApp = null;
-
-// Initialize MSAL and handle any redirect response
-async function initMsal() {
+async function fetchExcel() {
+  showLoading('Fetching latest data from GitHub…');
   try {
-    msalApp = new msal.PublicClientApplication(msalConfig);
-    await msalApp.initialize();
-
-    const resp = await msalApp.handleRedirectPromise();
-    if (resp && resp.account) {
-      setSignedIn(resp.account);
-      await fetchExcelFromGraph(resp.accessToken);
-      return;
-    }
-
-    // Check if already signed in
-    const accounts = msalApp.getAllAccounts();
-    if (accounts.length > 0) {
-      setSignedIn(accounts[0]);
-      await acquireTokenAndFetch(accounts[0]);
-    }
-  } catch (err) {
-    console.error('MSAL init error:', err);
-    // Show error visibly on page so user knows what happened
-    document.getElementById('last-refresh').textContent = '⚠ Auth error — see console';
-    document.getElementById('source-badge').textContent = err.message.slice(0, 60);
-  }
-}
-
-async function signIn() {
-  if (!msalApp) { alert('Authentication not ready yet — please wait a moment and try again.'); return; }
-  try {
-    // Try popup first (works better on GitHub Pages than redirect)
-    const resp = await msalApp.loginPopup({ scopes: SCOPES });
-    setSignedIn(resp.account);
-    await fetchExcelFromGraph(resp.accessToken);
-  } catch (err) {
-    if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
-      // Popup blocked — fall back to redirect
-      msalApp.loginRedirect({ scopes: SCOPES });
-    } else {
-      console.error('Sign-in error:', err);
-      showError('Sign-in failed: ' + err.message);
-    }
-  }
-}
-
-function signOut() {
-  if (!msalApp) return;
-  msalApp.logoutRedirect({ postLogoutRedirectUri: window.location.href });
-}
-
-function setSignedIn(account) {
-  const name = account.name || account.username;
-  document.getElementById('source-badge').textContent = name;
-  document.getElementById('auth-controls').innerHTML = `
-    <button class="btn-refresh" onclick="refreshData()">↺ Refresh Data</button>
-    <button class="btn-signout" onclick="signOut()">Sign out</button>
-  `;
-}
-
-async function refreshData() {
-  const accounts = msalApp ? msalApp.getAllAccounts() : [];
-  if (accounts.length === 0) { alert('Please sign in first.'); return; }
-  await acquireTokenAndFetch(accounts[0]);
-}
-
-async function acquireTokenAndFetch(account) {
-  try {
-    const result = await msalApp.acquireTokenSilent({ scopes: SCOPES, account });
-    await fetchExcelFromGraph(result.accessToken);
-  } catch (e) {
-    // Silent failed — try popup
-    try {
-      const result = await msalApp.acquireTokenPopup({ scopes: SCOPES, account });
-      await fetchExcelFromGraph(result.accessToken);
-    } catch (e2) {
-      msalApp.acquireTokenRedirect({ scopes: SCOPES, account });
-    }
-  }
-}
-
-// Kick off MSAL init immediately
-initMsal();
-
-async function fetchExcelFromGraph(accessToken) {
-  showLoading('Fetching data from SharePoint…');
-  try {
-    // Encode the SharePoint share URL to a Graph-compatible share ID
-    // Formula: base64url("u!" + shareUrl) → /shares/{id}/driveItem/content
-    const shareId = 'u!' + GRAPH_CONFIG.shareUrl;
-    const b64 = btoa(shareId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    const graphUrl = `https://graph.microsoft.com/v1.0/shares/${b64}/driveItem/content`;
-
-    const response = await fetch(graphUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Graph API error ${response.status}: ${await response.text()}`);
-    }
-
+    // Add cache-bust so browser always gets the latest version
+    const url = EXCEL_URL + '?t=' + Date.now();
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status} — file not found. Make sure Complete_Bucketing.xlsx is uploaded to the GitHub repo.`);
     const arrayBuffer = await response.arrayBuffer();
     loadFromBuffer(arrayBuffer);
-
   } catch (err) {
     hideLoading();
-    showError('Could not fetch file: ' + err.message);
+    showError(err.message);
     console.error(err);
   }
 }
 
 function loadFromBuffer(arrayBuffer) {
   try {
-    showLoading('Parsing Excel data…');
+    showLoading('Parsing data…');
     const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
     const sheetName = wb.SheetNames.includes('Sheet1') ? 'Sheet1' : wb.SheetNames[0];
     const ws = wb.Sheets[sheetName];
@@ -1296,16 +1151,18 @@ function loadFromBuffer(arrayBuffer) {
     applyFilters();
     document.getElementById('no-data-state').style.display = 'none';
     document.getElementById('dashboard-content').style.display = 'block';
-    const now = new Date();
     document.getElementById('last-refresh').textContent =
-      'Refreshed ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      'Updated ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     hideLoading();
   } catch (err) {
     hideLoading();
-    showError('Error parsing Excel: ' + err.message);
+    showError('Error reading Excel: ' + err.message);
     console.error(err);
   }
 }
+
+// Auto-load on page open
+fetchExcel();
 
 function showLoading(msg) {
   document.getElementById('loading-msg').textContent = msg || 'Loading…';
