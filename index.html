@@ -808,17 +808,25 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     border: 1px solid #aaa;
     text-align: center;
     font-size: 10px;
-    word-wrap: break-word;
-    white-space: nowrap;
+    word-break: break-word;
+    white-space: normal;
+    min-width: 32px;
   }
   .ann-page table td {
     padding: 4px 6px;
     border: 1px solid #ccc;
     vertical-align: top;
-    word-wrap: break-word;
+    word-break: break-word;
     text-align: center;
   }
+  /* Short / code columns stay centre; long text columns go left */
   .ann-page table td.text-left { text-align: left; }
+  /* Give narrow columns a hint so browser doesn't over-expand them */
+  .ann-page table .col-narrow { width: 4%; }
+  .ann-page table .col-short  { width: 6%; }
+  .ann-page table .col-med    { width: 10%; }
+  .ann-page table .col-wide   { width: 16%; }
+  .ann-page table .col-xwide  { width: 22%; }
   .ann-page table tr:nth-child(even) td { background: #f8f8f8; }
   .ann-page-footer {
     margin-top: 14px;
@@ -2418,6 +2426,16 @@ function renderAnnexurePreview() {
   const LEFT_ALIGN_KEYS = new Set(['CadreName','Establishment','ExamBucket','ExamScheme',
     'RRBefore','RRAfter','AkrutiStatus','RequisitionRemarks','RosterRemarks','DeptResponse']);
 
+  // Width hint classes by column key
+  const COL_CLASS = {
+    SNo:'col-narrow', Group:'col-short', RRDate:'col-short', PayScale:'col-med',
+    RRNumber:'col-med', Department:'col-med', Establishment:'col-wide',
+    CadreName:'col-wide', ExamBucket:'col-xwide', ExamScheme:'col-xwide',
+    RRBefore:'col-xwide', RRAfter:'col-xwide', AkrutiStatus:'col-wide',
+    RequisitionStatus:'col-short', VacancyUpdated:'col-short', VacancyAkruti:'col-short',
+    DeptResponse:'col-med', PromotionDRRatio:'col-short', RRChangeStatus:'col-med',
+  };
+
   // Paginate — roughly 30 rows per page for preview
   const ROWS_PER_PAGE = 30;
   const pages = [];
@@ -2435,7 +2453,7 @@ function renderAnnexurePreview() {
       ${nodal ? `<div class="ann-page-nodal">Nodal Department: ${nodal}</div>` : ''}
       <table>
         <thead>
-          <tr>${cols.map(c => `<th>${c.header}</th>`).join('')}</tr>
+          <tr>${cols.map(c => `<th class="${COL_CLASS[c.key]||'col-med'}">${c.header}</th>`).join('')}</tr>
         </thead>
         <tbody>
           ${pageRows.map((r, rowI) => `
@@ -2703,18 +2721,26 @@ function closeMultiAnnModal() {
 function buildMultiGroups() {
   const field = document.getElementById('multi-group-field').value;
   const baseNum = parseInt(document.getElementById('ann-number').value) || 1;
-  const baseTitle = document.getElementById('ann-title1').value.trim() || 'Annexure';
-  const data = getAnnData();
 
-  // Collect unique values preserving order of first appearance
+  // Always scan ALL sidebar-filtered data — not the annexure tab's extra filters
+  // so every category is visible regardless of annexure-tab dropdowns
+  const data = FILTERED_DATA;
+
+  // Collect unique values sorted alphabetically, preserving blanks last
   const seen = new Map();
   data.forEach(r => {
-    const v = r[field] || '(Blank)';
-    if (!seen.has(v)) seen.set(v, 0);
-    seen.set(v, seen.get(v) + 1);
+    const v = (r[field] || '').trim() || '(Blank)';
+    seen.set(v, (seen.get(v) || 0) + 1);
   });
 
-  multiGroups = Array.from(seen.entries()).map(([value, count], i) => ({
+  // Sort: non-blank alphabetically, then blanks at end
+  const sorted = Array.from(seen.entries()).sort((a, b) => {
+    if (a[0] === '(Blank)') return 1;
+    if (b[0] === '(Blank)') return -1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  multiGroups = sorted.map(([value, count], i) => ({
     value,
     count,
     annNumber: String(baseNum + i),
@@ -2813,11 +2839,16 @@ async function exportMultiAnnexure() {
     const hdrBorder = { style: BorderStyle.SINGLE, size: 6, color: '1A2744' };
     const hdrBorders = { top:hdrBorder, bottom:hdrBorder, left:hdrBorder, right:hdrBorder };
 
-    const baseData = getAnnData();
+    // Use sidebar-filtered data directly (same source as buildMultiGroups)
+    // filter by active-only if checked, but NOT by annexure tab extra filters
+    const activeOnly = document.getElementById('ann-active-only')?.checked;
+    const baseData = activeOnly
+      ? FILTERED_DATA.filter(r => r.Status === 'Active')
+      : FILTERED_DATA;
 
     // Build one section per group
     const sections = activeGroups.map((g, gi) => {
-      const data = baseData.filter(r => (r[field] || '(Blank)') === g.value);
+      const data = baseData.filter(r => ((r[field] || '').trim() || '(Blank)') === g.value);
       const titleText = g.annNumber ? `Annexure ${g.annNumber}: ${g.annTitle}` : g.annTitle;
 
       const headerRow = new TableRow({
