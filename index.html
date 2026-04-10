@@ -1186,9 +1186,6 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
             <div class="cdp-field"><div class="cdp-field-key">Cadre Status</div><div class="cdp-field-val" id="cdp-status">—</div></div>
             <div class="cdp-field"><div class="cdp-field-key">Dept. Response</div><div class="cdp-field-val" id="cdp-dept-response">—</div></div>
             <div class="cdp-field"><div class="cdp-field-key">Vacancy — Updated (9 Feb 26)</div><div class="cdp-field-val" id="cdp-vacancy">—</div></div>
-            <div class="cdp-field"><div class="cdp-field-key">Vacancy — After Akrutibandh</div><div class="cdp-field-val" id="cdp-vacancy-ak">—</div></div>
-            <div class="cdp-field"><div class="cdp-field-key">Vacancy Proportion</div><div class="cdp-field-val" id="cdp-vacancy-prop">—</div></div>
-            <div class="cdp-field"><div class="cdp-field-key">Promotion : DR Ratio</div><div class="cdp-field-val" id="cdp-ratio">—</div></div>
           </div>
           <div class="cdp-section">
             <div class="cdp-section-label">Recruitment & Roster</div>
@@ -1541,9 +1538,7 @@ const ALL_COLUMNS = [
   { key: 'RRNumber',          label: 'RR Number',        show: false },
   { key: 'RRDate',            label: 'RR Date',          show: false },
   { key: 'VacancyUpdated',    label: 'Vacancy (9 Feb 26)',  show: false },
-  { key: 'VacancyAkruti',    label: 'Vacancy (Post Akruti)',show: false },
   { key: 'DeptResponse',     label: 'Dept. Response',      show: false },
-  { key: 'PromotionDRRatio', label: 'DR:Promo Ratio',      show: false },
 ];
 
 // ─────────────────────────────────────────────
@@ -1647,13 +1642,10 @@ function parseRows(raw) {
       RRNumberRaw:       col(r, 'RR Number'),
       RRDate:            col(r, 'RR Date'),
       RRNumber:          col(r, 'RR Number').split('\n')[0],
-      RRBefore:          col(r, 'RR Details - Provided by Depts (Before Reforms)'),
+      RRBefore:          col(r, 'RR Details - In RRs (Before Reforms)\nNomination Details', 'RR Details - Provided by Depts (Before Reforms)'),
       RRAfter:           afterRR,
       RRChangeStatus:    classifyRR(afterRR),
       VacancyUpdated:    col(r, 'Updated Vacancy\n (9th Feb 26)', 'Updated Vacancy (9th Feb 26)'),
-      VacancyAkruti:     col(r, 'Vancancy (After Akrutibandh Status)', 'Vacancy (After Akrutibandh Status)'),
-      VacancyProportion: col(r, 'Vacancy Proportion'),
-      PromotionDRRatio:  col(r, 'Promotion: DR Ratio'),
     };
   });
 }
@@ -2013,9 +2005,6 @@ function selectRow(rowIdx) {
   document.getElementById('cdp-status').innerHTML = statusBadge(r.Status);
   document.getElementById('cdp-dept-response').textContent = r.DeptResponse || '—';
   document.getElementById('cdp-vacancy').textContent = r.VacancyUpdated || '—';
-  document.getElementById('cdp-vacancy-ak').textContent = r.VacancyAkruti || '—';
-  document.getElementById('cdp-vacancy-prop').textContent = r.VacancyProportion || '—';
-  document.getElementById('cdp-ratio').textContent = r.PromotionDRRatio || '—';
 
   document.getElementById('cdp-akruti').textContent = r.AkrutiStatus || '—';
   document.getElementById('cdp-akruti-date').textContent = r.AkrutiDate || '—';
@@ -2303,9 +2292,7 @@ const ANN_AVAILABLE_COLS = [
   { key: 'AkrutiStatus',      header: 'Akrutibandh Status',on: false },
   { key: 'RequisitionStatus', header: 'Requisition Status',on: false },
   { key: 'VacancyUpdated',    header: 'Vacancy (9 Feb 26)',on: false },
-  { key: 'VacancyAkruti',     header: 'Vacancy (After Akrutibandh)', on: false },
   { key: 'DeptResponse',      header: 'Dept. Response',   on: false },
-  { key: 'PromotionDRRatio',  header: 'DR:Promo Ratio',   on: false },
 ];
 
 let annCols = ANN_AVAILABLE_COLS.map(c => ({ ...c })); // working copy
@@ -2439,8 +2426,8 @@ function renderAnnexurePreview() {
     RRNumber:'col-med', Department:'col-med', Establishment:'col-wide',
     CadreName:'col-wide', ExamBucket:'col-xwide', ExamScheme:'col-xwide',
     RRBefore:'col-xwide', RRAfter:'col-xwide', AkrutiStatus:'col-wide',
-    RequisitionStatus:'col-short', VacancyUpdated:'col-short', VacancyAkruti:'col-short',
-    DeptResponse:'col-med', PromotionDRRatio:'col-short', RRChangeStatus:'col-med',
+    RequisitionStatus:'col-short', VacancyUpdated:'col-short',
+    DeptResponse:'col-med', RRChangeStatus:'col-med',
   };
 
   // Paginate — roughly 30 rows per page for preview
@@ -2466,9 +2453,10 @@ function renderAnnexurePreview() {
           ${pageRows.map((r, rowI) => `
             <tr>
               ${cols.map(c => {
-                let val = c.key === 'SNo' ? (pi * ROWS_PER_PAGE + rowI + 1) : (r[c.key] || '');
+                let val = c.key === 'SNo' ? (pi * ROWS_PER_PAGE + rowI + 1) : (r[c.key] || '-');
+                const strVal = String(val).trim() === '' ? '-' : String(val);
                 const cls = LEFT_ALIGN_KEYS.has(c.key) ? ' class="text-left"' : '';
-                return `<td${cls}>${String(val).replace(/\n/g,'<br>')}</td>`;
+                return `<td${cls}>${strVal.replace(/\n/g,'<br>')}</td>`;
               }).join('')}
             </tr>
           `).join('')}
@@ -2538,8 +2526,7 @@ async function exportAnnexure() {
       Department: 1.4, Establishment: 1.6, CadreName: 2.0,
       ExamBucket: 2.2, ExamScheme: 2.0, RRBefore: 3.0, RRAfter: 3.0,
       AkrutiStatus: 1.8, RequisitionStatus: 0.9, VacancyUpdated: 0.8,
-      VacancyAkruti: 0.8, DeptResponse: 1.2, PromotionDRRatio: 0.9,
-      RRChangeStatus: 1.0,
+      DeptResponse: 1.2, RRChangeStatus: 1.0,
     };
     const weights = cols.map(c => COL_WEIGHT[c.key] || 1.2);
     const totalWeight = weights.reduce((a,b) => a+b, 0);
@@ -2589,8 +2576,8 @@ async function exportAnnexure() {
     // Data rows
     const dataRows = data.map((r, rowI) => new TableRow({
       children: cols.map((c, ci) => {
-        const raw = c.key === 'SNo' ? String(rowI + 1) : (r[c.key] || '');
-        const lines = String(raw).split('\n');
+        const raw = c.key === 'SNo' ? String(rowI + 1) : (r[c.key] || '-');
+        const lines = String(raw).trim() === '' ? ['-'] : String(raw).split('\n');
         const align = LEFT_ALIGN_KEYS.has(c.key) ? AlignmentType.LEFT : AlignmentType.CENTER;
         return new TableCell({
           borders,
@@ -2830,7 +2817,7 @@ async function exportMultiAnnexure() {
       Department:1.4,Establishment:1.6,CadreName:2.0,
       ExamBucket:2.2,ExamScheme:2.0,RRBefore:3.0,RRAfter:3.0,
       AkrutiStatus:1.8,RequisitionStatus:0.9,VacancyUpdated:0.8,
-      VacancyAkruti:0.8,DeptResponse:1.2,PromotionDRRatio:0.9,RRChangeStatus:1.0,
+      DeptResponse:1.2,RRChangeStatus:1.0,
     };
     const weights   = cols.map(c => COL_WEIGHT[c.key] || 1.2);
     const totalW    = weights.reduce((a,b)=>a+b,0);
@@ -2870,8 +2857,9 @@ async function exportMultiAnnexure() {
 
       const dataRows = data.map((r, rowI) => new TableRow({
         children: cols.map((c, ci) => {
-          const raw = c.key === 'SNo' ? String(rowI+1) : (r[c.key]||'');
-          const lines = String(raw).split('\n');
+          // SNo resets to 1 for each group independently
+          const raw = c.key === 'SNo' ? String(rowI + 1) : (r[c.key] || '-');
+          const lines = String(raw).trim() === '' ? ['-'] : String(raw).split('\n');
           const align = LEFT_ALIGN_KEYS.has(c.key) ? AlignmentType.LEFT : AlignmentType.CENTER;
           return new TableCell({
             borders, width: { size: colWidths[ci], type: WidthType.DXA },
