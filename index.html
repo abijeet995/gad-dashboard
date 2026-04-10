@@ -798,7 +798,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     border-collapse: collapse;
     font-size: 10px;
     font-family: Arial, sans-serif;
-    table-layout: auto;
+    table-layout: fixed;
   }
   .ann-page table th {
     background: #1A2744;
@@ -829,12 +829,6 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     text-align: left !important;
     vertical-align: top !important;
   }
-  /* Give narrow columns a hint so browser doesn't over-expand them */
-  .ann-page table .col-narrow { width: 4%; }
-  .ann-page table .col-short  { width: 6%; }
-  .ann-page table .col-med    { width: 10%; }
-  .ann-page table .col-wide   { width: 16%; }
-  .ann-page table .col-xwide  { width: 22%; }
   .ann-page table tr:nth-child(even) td { background: #f8f8f8; }
   .ann-page-footer {
     margin-top: 14px;
@@ -2420,15 +2414,28 @@ function renderAnnexurePreview() {
   // Only genuinely long prose columns get left-aligned — everything else centres
   const LEFT_ALIGN_KEYS = new Set(['RRBefore','RRAfter','DeptResponse']);
 
-  // Width hint classes by column key
-  const COL_CLASS = {
-    SNo:'col-narrow', Group:'col-short', RRDate:'col-short', PayScale:'col-med',
-    RRNumber:'col-med', Department:'col-med', Establishment:'col-wide',
-    CadreName:'col-wide', ExamBucket:'col-xwide', ExamScheme:'col-xwide',
-    RRBefore:'col-xwide', RRAfter:'col-xwide', AkrutiStatus:'col-wide',
-    RequisitionStatus:'col-short', VacancyUpdated:'col-short',
-    DeptResponse:'col-med', RRChangeStatus:'col-med',
+  // Column widths for preview — same min-width logic as docx export, expressed as %
+  const PREVIEW_MIN = {
+    SNo:2, Group:3, RRDate:4, PayScale:5, RRNumber:6,
+    RequisitionStatus:4, VacancyUpdated:4, RRChangeStatus:4,
+    AkrutiStatus:6, Department:6, DeptResponse:6,
+    Establishment:7, CadreName:7, ExamBucket:8, ExamScheme:8,
+    RRBefore:14, RRAfter:14,
   };
+  const PREVIEW_TEXT = new Set(['RRBefore','RRAfter','CadreName','ExamBucket',
+    'ExamScheme','Establishment','DeptResponse','AkrutiStatus']);
+  const pMinW  = cols.map(c => PREVIEW_MIN[c.key] || 5);
+  const pTotal = pMinW.reduce((a,b)=>a+b,0);
+  let pWidths;
+  if (pTotal >= 100) {
+    pWidths = pMinW.map(w => (w * 100 / pTotal).toFixed(1));
+  } else {
+    const extra = 100 - pTotal;
+    const tCount = cols.filter(c => PREVIEW_TEXT.has(c.key)).length || 1;
+    const bonus = extra / tCount;
+    pWidths = cols.map((c,i) => (PREVIEW_TEXT.has(c.key) ? pMinW[i]+bonus : pMinW[i]).toFixed(1));
+  }
+  const colgroup = `<colgroup>${cols.map((_,i)=>`<col style="width:${pWidths[i]}%">`).join('')}</colgroup>`;
 
   // Paginate — roughly 30 rows per page for preview
   const ROWS_PER_PAGE = 30;
@@ -2446,8 +2453,9 @@ function renderAnnexurePreview() {
       <div class="ann-page-title">${titleLine.replace('\n','<br>')}</div>
       ${nodal ? `<div class="ann-page-nodal">Nodal Department: ${nodal}</div>` : ''}
       <table>
+        ${colgroup}
         <thead>
-          <tr>${cols.map(c => `<th class="${COL_CLASS[c.key]||'col-med'}">${c.header}</th>`).join('')}</tr>
+          <tr>${cols.map(c => `<th>${c.header}</th>`).join('')}</tr>
         </thead>
         <tbody>
           ${pageRows.map((r, rowI) => `
@@ -2521,18 +2529,49 @@ async function exportAnnexure() {
     const CONTENT_W = PAGE_W - MARGIN * 2; // 15398 DXA
 
     // Content-proportional column widths based on key type
-    const COL_WEIGHT = {
-      SNo: 0.4, Group: 0.5, RRDate: 0.7, RRNumber: 1.2, PayScale: 1.1,
-      Department: 1.4, Establishment: 1.6, CadreName: 2.0,
-      ExamBucket: 2.2, ExamScheme: 2.0, RRBefore: 3.0, RRAfter: 3.0,
-      AkrutiStatus: 1.8, RequisitionStatus: 0.9, VacancyUpdated: 0.8,
-      DeptResponse: 1.2, RRChangeStatus: 1.0,
+    // Column sizing: fixed minimums for short columns, remaining space shared by text columns
+    // Units: DXA (1440 = 1 inch). Page content width = 15398 DXA (~26.9cm landscape)
+    const COL_MIN = {
+      SNo: 480,              // ~0.85cm
+      Group: 720,            // ~1.3cm
+      RRDate: 960,           // ~1.7cm
+      PayScale: 1200,        // ~2.1cm
+      RRNumber: 1440,        // ~2.5cm
+      RequisitionStatus: 960,
+      VacancyUpdated: 960,
+      RRChangeStatus: 1080,
+      AkrutiStatus: 1440,
+      Department: 1440,
+      DeptResponse: 1440,
+      Establishment: 1800,
+      CadreName: 1800,
+      ExamBucket: 2160,
+      ExamScheme: 2160,
+      RRBefore: 3600,        // ~6.3cm — needs room for paragraph text
+      RRAfter: 3600,
     };
-    const weights = cols.map(c => COL_WEIGHT[c.key] || 1.2);
-    const totalWeight = weights.reduce((a,b) => a+b, 0);
-    const colWidths = weights.map(w => Math.round(CONTENT_W * w / totalWeight));
-    // Adjust last column for rounding
-    const wSum = colWidths.reduce((a,b)=>a+b,0);
+    // For each selected column: assign min, then distribute any remaining space
+    // proportionally to text-heavy columns
+    const TEXT_COLS = new Set(['RRBefore','RRAfter','CadreName','ExamBucket','ExamScheme',
+      'Establishment','DeptResponse','AkrutiStatus']);
+    const minWidths = cols.map(c => COL_MIN[c.key] || 1200);
+    const totalMin  = minWidths.reduce((a,b) => a+b, 0);
+    let colWidths;
+    if (totalMin >= CONTENT_W) {
+      // More columns than space — scale all down proportionally
+      const scale = CONTENT_W / totalMin;
+      colWidths = minWidths.map(w => Math.round(w * scale));
+    } else {
+      // Distribute leftover space to text-heavy columns
+      const extra = CONTENT_W - totalMin;
+      const textCount = cols.filter(c => TEXT_COLS.has(c.key)).length || 1;
+      const bonus = Math.round(extra / textCount);
+      colWidths = cols.map((c, i) =>
+        TEXT_COLS.has(c.key) ? minWidths[i] + bonus : minWidths[i]
+      );
+    }
+    // Fix rounding drift on last column
+    const wSum = colWidths.reduce((a,b) => a+b, 0);
     colWidths[colWidths.length-1] += CONTENT_W - wSum;
 
     // Font sizes (pt → half-points)
@@ -2812,16 +2851,27 @@ async function exportMultiAnnexure() {
     const PAGE_W = 16838, PAGE_H = 11906, MARGIN = 720;
     const CONTENT_W = PAGE_W - MARGIN * 2;
 
-    const COL_WEIGHT = {
-      SNo:0.4,Group:0.5,RRDate:0.7,RRNumber:1.2,PayScale:1.1,
-      Department:1.4,Establishment:1.6,CadreName:2.0,
-      ExamBucket:2.2,ExamScheme:2.0,RRBefore:3.0,RRAfter:3.0,
-      AkrutiStatus:1.8,RequisitionStatus:0.9,VacancyUpdated:0.8,
-      DeptResponse:1.2,RRChangeStatus:1.0,
+    const COL_MIN = {
+      SNo:480, Group:720, RRDate:960, PayScale:1200, RRNumber:1440,
+      RequisitionStatus:960, VacancyUpdated:960, RRChangeStatus:1080,
+      AkrutiStatus:1440, Department:1440, DeptResponse:1440,
+      Establishment:1800, CadreName:1800, ExamBucket:2160, ExamScheme:2160,
+      RRBefore:3600, RRAfter:3600,
     };
-    const weights   = cols.map(c => COL_WEIGHT[c.key] || 1.2);
-    const totalW    = weights.reduce((a,b)=>a+b,0);
-    const colWidths = weights.map(w => Math.round(CONTENT_W * w / totalW));
+    const TEXT_COLS = new Set(['RRBefore','RRAfter','CadreName','ExamBucket','ExamScheme',
+      'Establishment','DeptResponse','AkrutiStatus']);
+    const minWidths = cols.map(c => COL_MIN[c.key] || 1200);
+    const totalMin  = minWidths.reduce((a,b)=>a+b,0);
+    let colWidths;
+    if (totalMin >= CONTENT_W) {
+      const scale = CONTENT_W / totalMin;
+      colWidths = minWidths.map(w => Math.round(w * scale));
+    } else {
+      const extra = CONTENT_W - totalMin;
+      const textCount = cols.filter(c => TEXT_COLS.has(c.key)).length || 1;
+      const bonus = Math.round(extra / textCount);
+      colWidths = cols.map((c,i) => TEXT_COLS.has(c.key) ? minWidths[i]+bonus : minWidths[i]);
+    }
     colWidths[colWidths.length-1] += CONTENT_W - colWidths.reduce((a,b)=>a+b,0);
 
     const LEFT_ALIGN_KEYS = new Set(['RRBefore','RRAfter','DeptResponse']);
