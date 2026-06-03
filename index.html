@@ -3377,6 +3377,10 @@ function runCadreSearch() {
     if (COMPARE_MODE === 'browse') {
       summPanel.style.display = 'block';
       renderSearchSummary(null);
+    } else {
+      // pin mode — show pin summary panel
+      const pinSumm = document.getElementById('compare-summary-panel-pin');
+      if (pinSumm) { pinSumm.style.display = 'block'; renderSearchSummary(null); }
     }
     return;
   }
@@ -3401,6 +3405,13 @@ function runCadreSearch() {
     richPanel.style.display  = 'none';
     detailPane.style.display = 'none';
     document.getElementById('compare-pin-panels').style.display = 'flex';
+    // In pin mode: always render summary into the pin summary panel (if detail not open)
+    const pinDetail = document.getElementById('compare-detail-content-pin');
+    if (!pinDetail || pinDetail.style.display === 'none') {
+      renderSearchSummary(results.length ? results : null, q);
+      const pinSumm = document.getElementById('compare-summary-panel-pin');
+      if (pinSumm) pinSumm.style.display = 'block';
+    }
   }
 
   if (!results.length) {
@@ -3642,10 +3653,12 @@ function escC(s) {
 
 // ── SEARCH SUMMARY ──
 function renderSearchSummary(results, q) {
-  const panel = document.getElementById('compare-summary-panel');
+  // Target the active panel based on mode
+  const panelId = COMPARE_MODE === 'pin' ? 'compare-summary-panel-pin' : 'compare-summary-panel';
+  const panel = document.getElementById(panelId);
   if (!panel) return;
 
-  // If detail pane is showing a cadre, don't overwrite summary
+  // If cadre detail is open in pin mode, don't overwrite
   const detailPaneCheck = COMPARE_MODE === 'pin'
     ? document.getElementById('compare-detail-content-pin')
     : document.getElementById('compare-detail-pane');
