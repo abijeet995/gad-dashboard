@@ -1416,22 +1416,22 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
         <div class="load-sub">Loading data from Google Sheet. This only takes a moment.</div>
       </div>
       <div id="dashboard-content" style="display:none">
-        <!-- KPI Row: Departments, Total Cadres, Establishments -->
+        <!-- KPI Row: Departments, Establishments, Total Cadres -->
         <div class="kpi-grid">
           <div class="kpi-card red">
             <div class="kpi-label">Departments</div>
             <div class="kpi-value" id="kpi-depts">—</div>
             <div class="kpi-sub">in current view</div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Total Cadres</div>
-            <div class="kpi-value" id="kpi-total">—</div>
-            <div class="kpi-sub" id="kpi-total-sub">in current view</div>
-          </div>
           <div class="kpi-card blue">
             <div class="kpi-label">Establishments</div>
             <div class="kpi-value" id="kpi-establishments">—</div>
             <div class="kpi-sub">unique establishments</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Cadres</div>
+            <div class="kpi-value" id="kpi-total">—</div>
+            <div class="kpi-sub" id="kpi-total-sub">in current view</div>
           </div>
         </div>
 
@@ -2224,7 +2224,6 @@ function updateRRCharts(d) {
         <td style="text-align:right">${changed}</td>
         <td style="text-align:right">${noChange}</td>
         <td style="text-align:right">${gad}</td>
-        <td style="text-align:right">${unknown}</td>
         <td style="text-align:right"><strong>${rows.length}</strong></td>
       </tr>`;
     }).join('');
@@ -2244,7 +2243,6 @@ function updateRRCharts(d) {
         <td style="text-align:right">${changed}</td>
         <td style="text-align:right">${noChange}</td>
         <td style="text-align:right">${gad}</td>
-        <td style="text-align:right">${unknown}</td>
         <td style="text-align:right"><strong>${total}</strong></td>
       </tr>`;
     }).join('');
@@ -3370,9 +3368,11 @@ function runCadreSearch() {
     scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">Type to search ' + FILTERED_DATA.length.toLocaleString() + ' cadres</div>';
     cntEl.textContent = '';
     richPanel.style.display  = 'none';
-    summPanel.style.display  = 'block';
-    detailPane.style.display = 'none';
-    renderSearchSummary(null);
+    if (detailPane) detailPane.style.display = 'none';
+    if (COMPARE_MODE === 'browse') {
+      summPanel.style.display = 'block';
+      renderSearchSummary(null);
+    }
     return;
   }
 
