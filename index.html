@@ -1001,6 +1001,68 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
   .compare-result-card:hover .crc-pin-btn { opacity: 1; }
   .compare-result-card.pinned .crc-pin-btn { opacity: 1; color: var(--saffron); }
 
+  /* Search filter chips */
+  .compare-filter-row {
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+    margin: 6px 0 4px; padding: 6px 8px;
+    background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+  }
+  .compare-filter-label { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--slate); flex-shrink: 0; margin-right: 2px; }
+  .cfilter-chip {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 500; color: var(--slate);
+    background: white; border: 1px solid var(--border);
+    border-radius: 12px; padding: 2px 9px 2px 6px;
+    cursor: pointer; transition: all 0.12s; user-select: none;
+  }
+  .cfilter-chip input[type=checkbox] { accent-color: var(--saffron); width: 11px; height: 11px; margin: 0; cursor: pointer; }
+  .cfilter-chip:has(input:checked) { background: var(--navy); color: white; border-color: var(--navy); }
+  .cfilter-chip:has(input:checked) input { accent-color: white; }
+
+  /* Search summary panel */
+  .compare-summary {
+    background: white; border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; flex: 1;
+  }
+  .compare-summary-header {
+    background: var(--navy); color: white;
+    padding: 10px 14px; font-size: 13px; font-weight: 600;
+  }
+  .compare-summary-sub { font-size: 10px; opacity: 0.6; font-weight: 400; margin-top: 1px; }
+  .compare-summary-body { padding: 12px 14px; }
+  .compare-summary-kpis {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;
+  }
+  .csumkpi {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 8px 10px; text-align: center;
+  }
+  .csumkpi-val { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: var(--navy); line-height: 1; }
+  .csumkpi-lbl { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--slate); margin-top: 4px; }
+  .compare-summary-section { margin-bottom: 12px; }
+  .compare-summary-section-title {
+    font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--slate); margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid var(--border);
+  }
+  .csum-tag-cloud { display: flex; flex-wrap: wrap; gap: 5px; }
+  .csum-tag {
+    font-size: 10px; padding: 2px 9px; border-radius: 10px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .csum-tag-count { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--slate); }
+  .csum-grp-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .csum-grp-block {
+    flex: 1; min-width: 60px; padding: 7px 10px; border-radius: 5px; text-align: center;
+  }
+  .csum-grp-block.gA  { background: #E0E7FF; }
+  .csum-grp-block.gBG { background: #DBEAFE; }
+  .csum-grp-block.gBN { background: #EDE9FE; }
+  .csum-grp-block.gC  { background: #DCFCE7; }
+  .csum-grp-val { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: var(--navy); }
+  .csum-grp-lbl { font-size: 9px; color: var(--slate); margin-top: 2px; }
+  .compare-summary-empty { padding: 40px 20px; text-align: center; color: var(--slate); font-size: 12px; }
+
   /* Pinned strip */
   .compare-pinned-strip {
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
@@ -1608,10 +1670,17 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
             <div class="compare-search-label">Search Cadres</div>
             <div class="compare-input-wrap">
               <input class="compare-search-input" id="compare-search" type="text"
-                     placeholder="Cadre name, pay scale, exam bucket…"
+                     placeholder="Type to search…"
                      oninput="runCadreSearch()" autocomplete="off">
             </div>
-            <div class="compare-hint">Matches cadre name · pay scale · exam bucket · education qualification (RR details)</div>
+            <!-- Filter toggle chips -->
+            <div class="compare-filter-row" id="compare-filter-row">
+              <span class="compare-filter-label">Search in:</span>
+              <label class="cfilter-chip cfilter-on"><input type="checkbox" value="CadreName" checked onchange="runCadreSearch()"> Cadre Name</label>
+              <label class="cfilter-chip cfilter-on"><input type="checkbox" value="PayScale" checked onchange="runCadreSearch()"> Pay Scale</label>
+              <label class="cfilter-chip cfilter-on"><input type="checkbox" value="ExamBucket" checked onchange="runCadreSearch()"> Exam Bucket</label>
+              <label class="cfilter-chip"><input type="checkbox" value="RRBefore" onchange="runCadreSearch()"> Education / RR Details</label>
+            </div>
             <div class="compare-result-count" id="compare-result-count"></div>
             <div class="compare-results-scroll" id="compare-results-scroll">
               <div style="padding:24px 8px;text-align:center;color:var(--slate);font-size:12px">
@@ -1634,10 +1703,11 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
 
           <!-- Detail / compare pane -->
           <div class="compare-detail-pane" id="compare-detail-pane" style="flex:1">
-            <div class="compare-detail-empty" id="compare-detail-empty">
-              <div class="compare-detail-empty-icon">🔍</div>
-              <div style="font-size:13px;color:var(--slate)">Click a result card to view full cadre details</div>
+            <!-- Summary shown when no card is selected -->
+            <div id="compare-summary-panel" class="compare-summary">
+              <div class="compare-summary-empty">Type to search and see a summary of results</div>
             </div>
+            <!-- Full cadre detail (shown on card click) -->
             <div id="compare-detail-content" style="display:none"></div>
           </div>
 
@@ -3143,6 +3213,11 @@ async function exportMultiAnnexure() {
 let COMPARE_PINNED   = [];   // max 3
 let COMPARE_SELECTED = null; // currently shown in detail pane
 
+function getActiveSearchFields() {
+  return Array.from(document.querySelectorAll('#compare-filter-row input[type=checkbox]:checked'))
+              .map(cb => cb.value);
+}
+
 function runCadreSearch() {
   const q      = (document.getElementById('compare-search').value || '').trim().toLowerCase();
   const scroll = document.getElementById('compare-results-scroll');
@@ -3155,23 +3230,23 @@ function runCadreSearch() {
   if (!q) {
     scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">Type to search ' + FILTERED_DATA.length.toLocaleString() + ' cadres</div>';
     cntEl.textContent = '';
+    renderSearchSummary(null); // show blank summary
     return;
   }
 
+  const fields = getActiveSearchFields();
   const results = FILTERED_DATA.filter(r =>
-    (r.CadreName    || '').toLowerCase().includes(q) ||
-    (r.PayScale     || '').toLowerCase().includes(q) ||
-    (r.ExamBucket   || '').toLowerCase().includes(q) ||
-    (r.RRBefore     || '').toLowerCase().includes(q) ||
-    (r.RRAfter      || '').toLowerCase().includes(q)
+    fields.some(f => (r[f] || '').toLowerCase().includes(q))
   );
 
   cntEl.textContent = results.length
     ? results.length.toLocaleString() + ' result' + (results.length !== 1 ? 's' : '')
     : 'No results found';
 
+  renderSearchSummary(results, q);
+
   if (!results.length) {
-    scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">No matches — try a shorter search term</div>';
+    scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">No matches — try a shorter search term or add more search fields above</div>';
     return;
   }
 
@@ -3217,7 +3292,9 @@ function selectCadreCard(di) {
   const el = document.getElementById('crc-' + di);
   if (el) el.classList.add('selected');
 
-  document.getElementById('compare-detail-empty').style.display = 'none';
+  // hide summary, show detail
+  const summaryPanel = document.getElementById('compare-summary-panel');
+  if (summaryPanel) summaryPanel.style.display = 'none';
   const pane = document.getElementById('compare-detail-content');
   pane.style.display = 'block';
   pane.innerHTML = renderSingleDetail(r, di);
@@ -3239,9 +3316,12 @@ function renderSingleDetail(r, di) {
         ${r.RRChangeStatus  ? `<span class="csd-hbadge">${r.RRChangeStatus}</span>` : ''}
       </div>
     </div>
-    <button class="csd-pin-btn${isPinned ? ' pinned' : ''}" onclick="togglePin(event,${di})">
-      📌 ${isPinned ? 'Pinned' : 'Pin to compare'}
-    </button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+      <button class="csd-pin-btn${isPinned ? ' pinned' : ''}" onclick="togglePin(event,${di})">
+        📌 ${isPinned ? 'Pinned' : 'Pin to compare'}
+      </button>
+      ${(r.RRNumberRaw || r.RRNumber) ? `<span style="font-size:9px;opacity:0.6;text-align:right;max-width:160px;line-height:1.3">${escC(r.RRNumberRaw || r.RRNumber)}<br><span style="font-size:8px;opacity:0.7">${r.RRDate || ''}</span></span>` : ''}
+    </div>
   </div>
 
   <div class="csd-body">
@@ -3289,6 +3369,92 @@ function csdF(label, val, html) {
 
 function escC(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SEARCH SUMMARY ──
+function renderSearchSummary(results, q) {
+  const panel = document.getElementById('compare-summary-panel');
+  if (!panel) return;
+
+  // If detail pane is showing a cadre, don't overwrite it
+  const detail = document.getElementById('compare-detail-content');
+  if (detail && detail.style.display !== 'none') return;
+
+  if (!results || !results.length) {
+    panel.style.display = 'block';
+    panel.innerHTML = results === null
+      ? '<div class="compare-summary-empty">Type to search and see a summary of results</div>'
+      : '<div class="compare-summary-empty">No results — try a different term or enable more search fields</div>';
+    return;
+  }
+
+  panel.style.display = 'block';
+
+  const totalVacancy = results.reduce((s, r) => {
+    const v = parseInt((r.VacancyUpdated || '0').toString().replace(/[^0-9]/g,''));
+    return s + (isNaN(v) ? 0 : v);
+  }, 0);
+
+  // Dept counts
+  const deptMap = {};
+  results.forEach(r => { if (r.Department) deptMap[r.Department] = (deptMap[r.Department]||0)+1; });
+  const deptsSorted = Object.entries(deptMap).sort((a,b)=>b[1]-a[1]);
+
+  // Establishment counts
+  const estMap = {};
+  results.forEach(r => { if (r.Establishment) estMap[r.Establishment] = (estMap[r.Establishment]||0)+1; });
+  const estsSorted = Object.entries(estMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  // Group counts
+  const grpMap = { A:0, 'B (Gazetted)':0, 'B (Non Gazetted)':0, C:0 };
+  results.forEach(r => { if (r.Group && grpMap[r.Group] !== undefined) grpMap[r.Group]++; });
+
+  // RR change
+  const rrMap = {};
+  results.forEach(r => { const k = r.RRChangeStatus||'Unknown'; rrMap[k]=(rrMap[k]||0)+1; });
+
+  const tagCloud = (entries, max=12) => entries.slice(0, max).map(([name, cnt]) =>
+    `<span class="csum-tag">${name} <span class="csum-tag-count">${cnt}</span></span>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="compare-summary-header">
+      Search results for "<strong>${escC(q)}</strong>"
+      <div class="compare-summary-sub">${results.length.toLocaleString()} cadres · click any card to view full details</div>
+    </div>
+    <div class="compare-summary-body">
+      <div class="compare-summary-kpis">
+        <div class="csumkpi"><div class="csumkpi-val">${results.length}</div><div class="csumkpi-lbl">Cadres</div></div>
+        <div class="csumkpi"><div class="csumkpi-val">${Object.keys(deptMap).length}</div><div class="csumkpi-lbl">Depts</div></div>
+        <div class="csumkpi"><div class="csumkpi-val">${Object.keys(estMap).length}</div><div class="csumkpi-lbl">Ests.</div></div>
+        <div class="csumkpi"><div class="csumkpi-val">${totalVacancy > 0 ? totalVacancy.toLocaleString() : '—'}</div><div class="csumkpi-lbl">Vacancies</div></div>
+      </div>
+
+      <div class="compare-summary-section">
+        <div class="compare-summary-section-title">By Group</div>
+        <div class="csum-grp-row">
+          <div class="csum-grp-block gA"><div class="csum-grp-val">${grpMap['A']}</div><div class="csum-grp-lbl">Group A</div></div>
+          <div class="csum-grp-block gBG"><div class="csum-grp-val">${grpMap['B (Gazetted)']}</div><div class="csum-grp-lbl">B Gaz.</div></div>
+          <div class="csum-grp-block gBN"><div class="csum-grp-val">${grpMap['B (Non Gazetted)']}</div><div class="csum-grp-lbl">B Non-Gaz.</div></div>
+          <div class="csum-grp-block gC"><div class="csum-grp-val">${grpMap['C']}</div><div class="csum-grp-lbl">Group C</div></div>
+        </div>
+      </div>
+
+      <div class="compare-summary-section">
+        <div class="compare-summary-section-title">Departments (${Object.keys(deptMap).length})</div>
+        <div class="csum-tag-cloud">${tagCloud(deptsSorted, 15)}</div>
+      </div>
+
+      <div class="compare-summary-section">
+        <div class="compare-summary-section-title">Top Establishments</div>
+        <div class="csum-tag-cloud">${tagCloud(estsSorted)}</div>
+      </div>
+
+      <div class="compare-summary-section">
+        <div class="compare-summary-section-title">RR Change Status</div>
+        <div class="csum-tag-cloud">${tagCloud(Object.entries(rrMap).sort((a,b)=>b[1]-a[1]))}</div>
+      </div>
+    </div>`;
 }
 
 // ── PIN / UNPIN ──
@@ -3419,7 +3585,8 @@ function showCompareTable() {
 
 function closeCompareView() {
   document.getElementById('compare-detail-content').style.display = 'none';
-  document.getElementById('compare-detail-empty').style.display   = 'flex';
+  const summaryPanel = document.getElementById('compare-summary-panel');
+  if (summaryPanel) summaryPanel.style.display = 'block';
   COMPARE_SELECTED = null;
   document.querySelectorAll('.compare-result-card').forEach(el => el.classList.remove('selected'));
 }
