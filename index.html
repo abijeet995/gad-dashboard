@@ -975,7 +975,8 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
   .compare-result-card.selected { border-color: var(--navy); background: #EEF2FF; }
   .compare-result-card.pinned { border-color: var(--saffron); background: var(--saffron-pale); border-width: 2px; }
   .crc-name { font-weight: 600; font-size: 12px; color: var(--navy); margin-bottom: 2px; }
-  .crc-dept { font-size: 10px; color: var(--slate); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crc-dept { font-size: 10px; color: var(--slate); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crc-meta { font-size: 10px; color: var(--navy-light); font-weight: 500; }
   .crc-tags { display: flex; gap: 4px; flex-wrap: wrap; }
   .crc-tag { font-size: 9px; padding: 1px 6px; border-radius: 8px; background: var(--navy); color: white; font-weight: 500; }
   .crc-tag.grp-a { background: #1A2744; }
@@ -1601,7 +1602,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
                      placeholder="Cadre name, pay scale, exam bucket…"
                      oninput="runCadreSearch()" autocomplete="off">
             </div>
-            <div class="compare-hint">Matches cadre name · pay scale · exam bucket · RR number</div>
+            <div class="compare-hint">Matches cadre name · pay scale · exam bucket · education qualification (RR details)</div>
             <div class="compare-result-count" id="compare-result-count"></div>
             <div class="compare-results-scroll" id="compare-results-scroll">
               <div style="padding:24px 8px;text-align:center;color:var(--slate);font-size:12px">
@@ -3152,7 +3153,8 @@ function runCadreSearch() {
     (r.CadreName    || '').toLowerCase().includes(q) ||
     (r.PayScale     || '').toLowerCase().includes(q) ||
     (r.ExamBucket   || '').toLowerCase().includes(q) ||
-    (r.RRNumber     || '').toLowerCase().includes(q)
+    (r.RRBefore     || '').toLowerCase().includes(q) ||
+    (r.RRAfter      || '').toLowerCase().includes(q)
   );
 
   cntEl.textContent = results.length
@@ -3168,10 +3170,12 @@ function runCadreSearch() {
     const di       = FILTERED_DATA.indexOf(r);
     const isPinned = COMPARE_PINNED.includes(r);
     const isSel    = COMPARE_SELECTED === r;
-    const init     = (r.CadreName || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-    const grpCls   = r.Group === 'A' ? 'grp-a' : (r.Group || '').startsWith('B') ? 'grp-b' : 'grp-c';
-    const stCls    = r.Status === 'Active' ? 'active' : 'inactive';
-    const bucket   = r.ExamBucket ? r.ExamBucket.slice(0, 20) + (r.ExamBucket.length > 20 ? '…' : '') : '';
+
+    // build a compact meta line: Group B (Gazetted) · ₹15600–39100
+    const meta = [
+      r.Group   ? 'Grp ' + r.Group : '',
+      r.PayScale || '',
+    ].filter(Boolean).join(' · ');
 
     return `<div class="compare-result-card${isPinned ? ' pinned' : ''}${isSel ? ' selected' : ''}"
                  onclick="selectCadreCard(${di})" id="crc-${di}">
@@ -3179,11 +3183,7 @@ function runCadreSearch() {
               title="${isPinned ? 'Unpin' : 'Pin for comparison'}">📌</button>
       <div class="crc-name">${r.CadreName || '—'}</div>
       <div class="crc-dept" title="${r.Department}">${r.Department || ''}${r.Establishment ? ' · ' + r.Establishment : ''}</div>
-      <div class="crc-tags">
-        ${r.Group   ? `<span class="crc-tag ${grpCls}">Grp ${r.Group}</span>` : ''}
-        ${r.Status  ? `<span class="crc-tag ${stCls}">${r.Status}</span>` : ''}
-        ${bucket    ? `<span class="crc-tag" style="background:var(--navy-light)">${bucket}</span>` : ''}
-      </div>
+      <div class="crc-meta">${meta}</div>
     </div>`;
   }).join('');
 }
