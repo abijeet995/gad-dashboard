@@ -1520,7 +1520,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           <div class="chart-wrap-tall"><canvas id="chart-rr-group"></canvas></div>
           <div style="margin-top:14px;overflow-x:auto">
             <table class="small-table">
-              <thead><tr><th style="text-align:left">Group</th><th style="text-align:right">Changed</th><th style="text-align:right">No Change</th><th style="text-align:right">GAD Rules</th><th style="text-align:right">Unknown</th><th style="text-align:right">Total</th></tr></thead>
+              <thead><tr><th style="text-align:left">Group</th><th style="text-align:right">Changed</th><th style="text-align:right">No Change</th><th style="text-align:right">GAD Rules</th><th style="text-align:right">Total</th></tr></thead>
               <tbody id="table-rr-group-body"></tbody>
             </table>
           </div>
@@ -1530,7 +1530,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           <div class="chart-wrap-tall"><canvas id="chart-rr-bucket"></canvas></div>
           <div style="margin-top:14px;overflow-x:auto">
             <table class="small-table">
-              <thead><tr><th style="text-align:left">Exam Bucket</th><th style="text-align:right">Changed</th><th style="text-align:right">No Change</th><th style="text-align:right">GAD Rules</th><th style="text-align:right">Unknown</th><th style="text-align:right">Total</th></tr></thead>
+              <thead><tr><th style="text-align:left">Exam Bucket</th><th style="text-align:right">Changed</th><th style="text-align:right">No Change</th><th style="text-align:right">GAD Rules</th><th style="text-align:right">Total</th></tr></thead>
               <tbody id="table-rr-bucket-body"></tbody>
             </table>
           </div>
@@ -1785,12 +1785,12 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           <!-- Mode toggle bar -->
           <div class="compare-mode-bar">
             <span class="compare-mode-label">View</span>
-            <button class="cmode-btn active" id="mode-btn-browse" onclick="setCompareMode('browse')">📋 Browse Cards</button>
-            <button class="cmode-btn" id="mode-btn-pin" onclick="setCompareMode('pin')">📌 Pin &amp; Compare</button>
+            <button class="cmode-btn" id="mode-btn-browse" onclick="setCompareMode('browse')">📋 Browse Cards</button>
+            <button class="cmode-btn active" id="mode-btn-pin" onclick="setCompareMode('pin')">📌 Pin &amp; Compare</button>
           </div>
 
           <!-- BROWSE MODE: summary (no query) -->
-          <div id="compare-summary-panel" class="compare-summary">
+          <div id="compare-summary-panel" class="compare-summary" style="display:none">
             <div class="compare-summary-empty">Type to search and see a summary of results</div>
           </div>
           <!-- BROWSE MODE: rich cards grid -->
@@ -1803,7 +1803,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           </div>
 
           <!-- PIN & COMPARE MODE panels -->
-          <div id="compare-pin-panels" style="display:none;flex-direction:column;gap:10px">
+          <div id="compare-pin-panels" style="display:flex;flex-direction:column;gap:10px">
             <div class="compare-pinned-strip" id="compare-pinned-strip">
               <span class="compare-pinned-label">Pinned</span>
               <span class="compare-pinned-empty" id="compare-pinned-empty">Use 📌 on a card to pin up to 3 cadres</span>
@@ -2134,7 +2134,8 @@ function updateCharts() {
 
   // Cadres by Group -> render as table
   const grpMap = countBy(d, 'Group');
-  const grpEntries = Object.entries(grpMap).sort((a,b) => b[1] - a[1]);
+  const grpOrder = ['A','B (Gazetted)','B (Non Gazetted)','C'];
+  const grpEntries = grpOrder.filter(k => grpMap[k] !== undefined).map(k => [k, grpMap[k]]);
   const grpBody = document.getElementById('table-group-body');
   if (grpBody) {
     grpBody.innerHTML = grpEntries.map(([k,v]) => `<tr><td style="text-align:left">${k}</td><td style="text-align:right">${v}</td></tr>`).join('');
@@ -3318,7 +3319,7 @@ async function exportMultiAnnexure() {
 // ─────────────────────────────────────────────
 let COMPARE_PINNED   = [];   // max 3
 let COMPARE_SELECTED = null;
-let COMPARE_MODE     = 'browse'; // 'browse' | 'pin'
+let COMPARE_MODE     = 'pin'; // 'browse' | 'pin'
 
 function setCompareMode(mode) {
   COMPARE_MODE = mode;
@@ -3339,6 +3340,10 @@ function setCompareMode(mode) {
     richPanel.style.display = 'none';
     detPane.style.display   = 'none';
     pinPanels.style.display = 'flex';
+    const pinSumm = document.getElementById('compare-summary-panel-pin');
+    const pinDetail = document.getElementById('compare-detail-content-pin');
+    if (pinSumm)   pinSumm.style.display   = 'block';
+    if (pinDetail) pinDetail.style.display = 'none';
     renderPinnedStrip();
     runCadreSearch();
   }
