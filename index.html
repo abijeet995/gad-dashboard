@@ -3531,13 +3531,14 @@ function selectCadreCard(di) {
   if (!r) return;
   COMPARE_SELECTED = r;
 
-  // In pin mode: show detail inside pin panels
+  // In pin mode: show full cadre detail inside pin panels
   if (COMPARE_MODE === 'pin') {
     const pinSumm = document.getElementById('compare-summary-panel-pin');
     if (pinSumm) pinSumm.style.display = 'none';
-    const pane = document.getElementById('compare-detail-content');
-    pane.style.display = 'block';
-    pane.innerHTML = renderSingleDetail(r, di);
+    const pinPane = document.getElementById('compare-detail-pane-pin');
+    if (pinPane) pinPane.style.display = 'block';
+    const pane = document.getElementById('compare-detail-content-pin');
+    if (pane) { pane.style.display = 'block'; pane.innerHTML = renderSingleDetail(r, di); }
     return;
   }
   // Browse mode: hide summary/rich, show detail pane
