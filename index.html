@@ -968,24 +968,33 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     display: flex; flex-direction: column; gap: 5px; margin-top: 8px;
   }
   .compare-result-card {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
-    padding: 8px 10px; cursor: pointer; transition: all 0.15s; position: relative;
+    background: white; border: 1px solid var(--border);
+    border-left: 4px solid #CBD5E1;
+    border-radius: 5px; padding: 9px 10px 9px 12px;
+    cursor: pointer; transition: all 0.15s; position: relative;
   }
-  .compare-result-card:hover { border-color: var(--saffron); background: var(--saffron-pale); }
-  .compare-result-card.selected { border-color: var(--navy); background: #EEF2FF; }
-  .compare-result-card.pinned { border-color: var(--saffron); background: var(--saffron-pale); border-width: 2px; }
+  .compare-result-card:hover { border-color: #CBD5E1; border-left-color: var(--saffron); box-shadow: 0 2px 8px rgba(232,98,26,0.10); background: white; }
+  .compare-result-card.selected { border-color: #CBD5E1; border-left-color: var(--navy); background: #F0F4FF; box-shadow: 0 2px 8px rgba(26,39,68,0.08); }
+  .compare-result-card.pinned { border-color: var(--saffron); border-left-color: var(--saffron); background: var(--saffron-pale); box-shadow: 0 2px 8px rgba(232,98,26,0.12); }
+  /* left-border accent per group */
+  .compare-result-card.grp-A  { border-left-color: #1A2744; }
+  .compare-result-card.grp-BG { border-left-color: #2563EB; }
+  .compare-result-card.grp-BN { border-left-color: #7C3AED; }
+  .compare-result-card.grp-C  { border-left-color: #16A34A; }
   .crc-name { font-weight: 600; font-size: 12px; color: var(--navy); margin-bottom: 2px; }
-  .crc-dept { font-size: 10px; color: var(--slate); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .crc-meta { font-size: 10px; color: var(--navy-light); font-weight: 500; }
-  .crc-tags { display: flex; gap: 4px; flex-wrap: wrap; }
-  .crc-tag { font-size: 9px; padding: 1px 6px; border-radius: 8px; background: var(--navy); color: white; font-weight: 500; }
-  .crc-tag.grp-a { background: #1A2744; }
-  .crc-tag.grp-b { background: #2563EB; }
-  .crc-tag.grp-c { background: #16A34A; }
-  .crc-tag.active { background: #16A34A; }
-  .crc-tag.inactive { background: #64748B; }
+  .crc-dept { font-size: 10px; color: var(--slate); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crc-chips { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .crc-chip {
+    font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+    letter-spacing: 0.2px; white-space: nowrap;
+  }
+  .crc-chip.chip-A  { background: #E0E7FF; color: #1E3A8A; }
+  .crc-chip.chip-BG { background: #DBEAFE; color: #1E40AF; }
+  .crc-chip.chip-BN { background: #EDE9FE; color: #5B21B6; }
+  .crc-chip.chip-C  { background: #DCFCE7; color: #166534; }
+  .crc-chip.chip-pay { background: #FEF3C7; color: #92400E; font-weight: 500; }
   .crc-pin-btn {
-    position: absolute; top: 6px; right: 7px;
+    position: absolute; top: 7px; right: 8px;
     background: none; border: none; font-size: 12px; cursor: pointer;
     color: var(--slate); opacity: 0; transition: opacity 0.15s; line-height: 1;
   }
@@ -3171,19 +3180,30 @@ function runCadreSearch() {
     const isPinned = COMPARE_PINNED.includes(r);
     const isSel    = COMPARE_SELECTED === r;
 
-    // build a compact meta line: Group B (Gazetted) · ₹15600–39100
-    const meta = [
-      r.Group   ? 'Grp ' + r.Group : '',
-      r.PayScale || '',
-    ].filter(Boolean).join(' · ');
+    // group → CSS class for left-border accent + chip colour
+    const grp = r.Group || '';
+    const grpClass = grp === 'A' ? 'grp-A'
+                   : grp === 'B (Gazetted)' ? 'grp-BG'
+                   : grp === 'B (Non Gazetted)' ? 'grp-BN'
+                   : grp === 'C' ? 'grp-C' : '';
+    const chipClass = grp === 'A' ? 'chip-A'
+                    : grp === 'B (Gazetted)' ? 'chip-BG'
+                    : grp === 'B (Non Gazetted)' ? 'chip-BN'
+                    : grp === 'C' ? 'chip-C' : 'chip-BG';
+    const grpLabel  = grp === 'B (Gazetted)'     ? 'Grp B (Gaz)'
+                    : grp === 'B (Non Gazetted)'  ? 'Grp B (Non-Gaz)'
+                    : grp ? 'Grp ' + grp : '';
 
-    return `<div class="compare-result-card${isPinned ? ' pinned' : ''}${isSel ? ' selected' : ''}"
+    return `<div class="compare-result-card${isPinned ? ' pinned' : ''}${isSel ? ' selected' : ''} ${grpClass}"
                  onclick="selectCadreCard(${di})" id="crc-${di}">
       <button class="crc-pin-btn" onclick="togglePin(event,${di})"
               title="${isPinned ? 'Unpin' : 'Pin for comparison'}">📌</button>
       <div class="crc-name">${r.CadreName || '—'}</div>
       <div class="crc-dept" title="${r.Department}">${r.Department || ''}${r.Establishment ? ' · ' + r.Establishment : ''}</div>
-      <div class="crc-meta">${meta}</div>
+      <div class="crc-chips">
+        ${grpLabel ? `<span class="crc-chip ${chipClass}">${grpLabel}</span>` : ''}
+        ${r.PayScale ? `<span class="crc-chip chip-pay">${r.PayScale}</span>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
