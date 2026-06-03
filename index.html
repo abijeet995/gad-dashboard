@@ -1001,6 +1001,95 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
   .compare-result-card:hover .crc-pin-btn { opacity: 1; }
   .compare-result-card.pinned .crc-pin-btn { opacity: 1; color: var(--saffron); }
 
+  /* Rich search result cards */
+  .crc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+  .crc-rich-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: 3px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+    cursor: pointer; transition: box-shadow 0.15s;
+  }
+  .crc-rich-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.10); }
+  .crc-rich-card.selected { box-shadow: 0 0 0 2px var(--navy); }
+  .crc-rich-card.accent-A  { border-top-color: #1A2744; }
+  .crc-rich-card.accent-BG { border-top-color: #2563EB; }
+  .crc-rich-card.accent-BN { border-top-color: #7C3AED; }
+  .crc-rich-card.accent-C  { border-top-color: #16A34A; }
+  .crc-rich-head {
+    padding: 10px 12px 8px; border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 3px; position: relative;
+  }
+  .crc-rich-name { font-weight: 600; font-size: 12px; color: var(--navy); line-height: 1.3; padding-right: 56px; }
+  .crc-rich-dept { font-size: 10px; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crc-rich-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .crc-badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 9px; white-space: nowrap; }
+  .crc-badge-A  { background: #E0E7FF; color: #1e3a8a; }
+  .crc-badge-BG { background: #DBEAFE; color: #1e40af; }
+  .crc-badge-BN { background: #EDE9FE; color: #5b21b6; }
+  .crc-badge-C  { background: #DCFCE7; color: #166534; }
+  .crc-badge-pay { background: #FEF3C7; color: #92400e; font-weight: 500; }
+  .crc-rr-link {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 9px; color: var(--slate); border: 1px dashed var(--border);
+    border-radius: 3px; padding: 2px 6px; text-decoration: none; white-space: nowrap;
+  }
+  .crc-rr-link.active { color: var(--navy); border-color: var(--navy-light); border-style: solid; }
+  .crc-rr-link.active:hover { background: var(--saffron-pale); }
+  .crc-rich-body { padding: 10px 12px; }
+  .crc-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 9px; }
+  .crc-stat-tile { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; text-align: center; }
+  .crc-stat-val { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 500; color: var(--navy); line-height: 1; }
+  .crc-stat-lbl { font-size: 9px; color: var(--slate); margin-top: 3px; letter-spacing: 0.4px; text-transform: uppercase; }
+  .crc-field { margin-bottom: 8px; }
+  .crc-field-key { font-size: 9px; font-weight: 600; color: var(--slate); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+  .crc-field-val { font-size: 11px; color: var(--text); line-height: 1.4; }
+  .crc-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+  .crc-rr-box {
+    background: var(--bg); border-left: 2px solid var(--border);
+    border-radius: 0 3px 3px 0; padding: 6px 8px;
+    font-size: 10px; color: var(--slate); line-height: 1.5;
+    max-height: 70px; overflow-y: auto;
+  }
+  .crc-rr-box.after { border-left-color: #16A34A; }
+  .crc-ch-badge { font-size: 9px; font-weight: 500; padding: 1px 6px; border-radius: 8px; }
+  .crc-ch-none    { background: #DCFCE7; color: #166534; }
+  .crc-ch-changed { background: #DBEAFE; color: #1e40af; }
+  .crc-ch-new     { background: #FEF3C7; color: #92400e; }
+  .crc-ch-unknown { background: var(--bg); color: var(--slate); border: 1px solid var(--border); }
+
+  /* View mode toggle */
+  .compare-mode-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 12px; flex-shrink: 0;
+  }
+  .compare-mode-label { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--slate); margin-right: 2px; }
+  .cmode-btn {
+    font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 4px;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.12s;
+    background: var(--bg); color: var(--slate); font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .cmode-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .cmode-btn:not(.active):hover { background: var(--saffron-pale); border-color: var(--saffron); color: var(--navy); }
+  /* Pinned strip (Pin & Compare mode) */
+  .compare-pinned-strip {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 44px;
+  }
+  .compare-pinned-label { font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); flex-shrink: 0; }
+  .compare-pinned-chip { display: flex; align-items: center; gap: 5px; background: var(--saffron-pale); border: 1px solid var(--saffron-light); border-radius: 12px; padding: 2px 8px 2px 10px; font-size: 11px; color: var(--navy); font-weight: 500; }
+  .compare-pinned-chip button { background: none; border: none; font-size: 12px; cursor: pointer; color: var(--slate); line-height: 1; padding: 0; }
+  .compare-pinned-chip button:hover { color: var(--red); }
+  .compare-btn { margin-left: auto; background: var(--navy); color: white; border: none; padding: 5px 14px; border-radius: 4px; font-size: 11px; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+  .compare-btn:hover { background: var(--navy-mid); }
+  .compare-btn:disabled { opacity: 0.4; cursor: default; }
+  .compare-pinned-empty { font-size: 11px; color: var(--slate); font-style: italic; }
+
   /* Search filter chips */
   .compare-filter-row {
     display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
@@ -1664,7 +1753,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
     <div class="tab-panel" id="tab-compare">
       <div class="compare-layout">
 
-        <!-- LEFT: Search + results -->
+        <!-- LEFT: Search controls only -->
         <div class="compare-search-panel">
           <div class="compare-search-card">
             <div class="compare-search-label">Search Cadres</div>
@@ -1673,7 +1762,6 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
                      placeholder="Type to search…"
                      oninput="runCadreSearch()" autocomplete="off">
             </div>
-            <!-- Filter toggle chips -->
             <div class="compare-filter-row" id="compare-filter-row">
               <span class="compare-filter-label">Search in:</span>
               <label class="cfilter-chip cfilter-on"><input type="checkbox" value="CadreName" checked onchange="runCadreSearch()"> Cadre Name</label>
@@ -1682,6 +1770,7 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
               <label class="cfilter-chip"><input type="checkbox" value="RRBefore" onchange="runCadreSearch()"> Education / RR Details</label>
             </div>
             <div class="compare-result-count" id="compare-result-count"></div>
+            <!-- Slim list for quick navigation -->
             <div class="compare-results-scroll" id="compare-results-scroll">
               <div style="padding:24px 8px;text-align:center;color:var(--slate);font-size:12px">
                 Load data then type to search
@@ -1690,28 +1779,46 @@ r.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,l=-7,h=r?o-1:0,p=
           </div>
         </div>
 
-        <!-- RIGHT: Pinned strip + detail -->
+        <!-- RIGHT: mode toggle + panels -->
         <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
 
-          <!-- Pinned cadres -->
-          <div class="compare-pinned-strip" id="compare-pinned-strip">
-            <span class="compare-pinned-label">Pinned</span>
-            <span class="compare-pinned-empty" id="compare-pinned-empty">Use 📌 on a card to pin up to 3 cadres</span>
-            <div id="compare-pinned-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-            <button class="compare-btn" id="compare-btn" onclick="showCompareTable()" disabled>Compare →</button>
+          <!-- Mode toggle bar -->
+          <div class="compare-mode-bar">
+            <span class="compare-mode-label">View</span>
+            <button class="cmode-btn active" id="mode-btn-browse" onclick="setCompareMode('browse')">📋 Browse Cards</button>
+            <button class="cmode-btn" id="mode-btn-pin" onclick="setCompareMode('pin')">📌 Pin &amp; Compare</button>
           </div>
 
-          <!-- Detail / compare pane -->
-          <div class="compare-detail-pane" id="compare-detail-pane" style="flex:1">
-            <!-- Summary shown when no card is selected -->
-            <div id="compare-summary-panel" class="compare-summary">
-              <div class="compare-summary-empty">Type to search and see a summary of results</div>
+          <!-- BROWSE MODE: summary (no query) -->
+          <div id="compare-summary-panel" class="compare-summary">
+            <div class="compare-summary-empty">Type to search and see a summary of results</div>
+          </div>
+          <!-- BROWSE MODE: rich cards grid -->
+          <div id="compare-rich-results" style="display:none">
+            <div id="compare-rich-grid" class="crc-grid"></div>
+          </div>
+          <!-- BROWSE MODE: cadre detail (on rich card click) -->
+          <div class="compare-detail-pane" id="compare-detail-pane" style="display:none">
+            <div id="compare-detail-content"></div>
+          </div>
+
+          <!-- PIN & COMPARE MODE panels -->
+          <div id="compare-pin-panels" style="display:none;flex-direction:column;gap:10px">
+            <div class="compare-pinned-strip" id="compare-pinned-strip">
+              <span class="compare-pinned-label">Pinned</span>
+              <span class="compare-pinned-empty" id="compare-pinned-empty">Use 📌 on a card to pin up to 3 cadres</span>
+              <div id="compare-pinned-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+              <button class="compare-btn" id="compare-btn" onclick="showCompareTable()" disabled>Compare →</button>
             </div>
-            <!-- Full cadre detail (shown on card click) -->
-            <div id="compare-detail-content" style="display:none"></div>
+            <div class="compare-detail-pane" id="compare-detail-pane-pin">
+              <div id="compare-summary-panel-pin" class="compare-summary">
+                <div class="compare-summary-empty">Search and click 📌 to pin cadres, then compare side by side</div>
+              </div>
+              <div id="compare-detail-content-pin" style="display:none"></div>
+            </div>
           </div>
 
-        </div>
+
       </div>
     </div><!-- end tab-compare -->
 
@@ -1863,6 +1970,7 @@ function parseRows(raw) {
       RRChangeStatus:    classifyRR(afterRR),
       RRLink:            col(r, 'Link to RR'),
       VacancyUpdated:    col(r, 'Updated Vacancy (9th Feb 26)'),
+      DRPosts:           col(r, 'DR Posts'),
     };
   });
 }
@@ -3211,7 +3319,32 @@ async function exportMultiAnnexure() {
 // CADRE COMPARISON MODULE
 // ─────────────────────────────────────────────
 let COMPARE_PINNED   = [];   // max 3
-let COMPARE_SELECTED = null; // currently shown in detail pane
+let COMPARE_SELECTED = null;
+let COMPARE_MODE     = 'browse'; // 'browse' | 'pin'
+
+function setCompareMode(mode) {
+  COMPARE_MODE = mode;
+  document.getElementById('mode-btn-browse').classList.toggle('active', mode === 'browse');
+  document.getElementById('mode-btn-pin').classList.toggle('active', mode === 'pin');
+
+  const pinPanels = document.getElementById('compare-pin-panels');
+  const summPanel = document.getElementById('compare-summary-panel');
+  const richPanel = document.getElementById('compare-rich-results');
+  const detPane   = document.getElementById('compare-detail-pane');
+
+  if (mode === 'browse') {
+    pinPanels.style.display = 'none';
+    detPane.style.display   = 'none';
+    runCadreSearch();
+  } else {
+    summPanel.style.display = 'none';
+    richPanel.style.display = 'none';
+    detPane.style.display   = 'none';
+    pinPanels.style.display = 'flex';
+    renderPinnedStrip();
+    runCadreSearch();
+  }
+} // currently shown in detail pane
 
 function getActiveSearchFields() {
   return Array.from(document.querySelectorAll('#compare-filter-row input[type=checkbox]:checked'))
@@ -3222,15 +3355,24 @@ function runCadreSearch() {
   const q      = (document.getElementById('compare-search').value || '').trim().toLowerCase();
   const scroll = document.getElementById('compare-results-scroll');
   const cntEl  = document.getElementById('compare-result-count');
+  const richPanel  = document.getElementById('compare-rich-results');
+  const richGrid   = document.getElementById('compare-rich-grid');
+  const summPanel  = document.getElementById('compare-summary-panel');
+  const detailPane = document.getElementById('compare-detail-pane');
 
   if (!RAW_DATA.length) {
     scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">Load data first — click ↺ Refresh in the top bar</div>';
     return;
   }
+
+  // No query — show summary, hide rich cards
   if (!q) {
     scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">Type to search ' + FILTERED_DATA.length.toLocaleString() + ' cadres</div>';
     cntEl.textContent = '';
-    renderSearchSummary(null); // show blank summary
+    richPanel.style.display  = 'none';
+    summPanel.style.display  = 'block';
+    detailPane.style.display = 'none';
+    renderSearchSummary(null);
     return;
   }
 
@@ -3243,44 +3385,145 @@ function runCadreSearch() {
     ? results.length.toLocaleString() + ' result' + (results.length !== 1 ? 's' : '')
     : 'No results found';
 
-  renderSearchSummary(results, q);
+  // Show/hide panels depending on mode
+  if (COMPARE_MODE === 'browse') {
+    summPanel.style.display  = 'none';
+    detailPane.style.display = 'none';
+    document.getElementById('compare-pin-panels').style.display = 'none';
+    richPanel.style.display  = 'block';
+  } else {
+    summPanel.style.display  = 'none';
+    richPanel.style.display  = 'none';
+    detailPane.style.display = 'none';
+    document.getElementById('compare-pin-panels').style.display = 'flex';
+  }
 
   if (!results.length) {
     scroll.innerHTML = '<div style="padding:20px;text-align:center;color:var(--slate);font-size:12px">No matches — try a shorter search term or add more search fields above</div>';
+    richGrid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--slate);font-size:13px">No results found</div>';
     return;
   }
 
+  // Slim list (left panel — quick navigation)
   scroll.innerHTML = results.slice(0, 100).map(r => {
-    const di       = FILTERED_DATA.indexOf(r);
-    const isPinned = COMPARE_PINNED.includes(r);
-    const isSel    = COMPARE_SELECTED === r;
-
-    // group → CSS class for left-border accent + chip colour
-    const grp = r.Group || '';
-    const grpClass = grp === 'A' ? 'grp-A'
-                   : grp === 'B (Gazetted)' ? 'grp-BG'
-                   : grp === 'B (Non Gazetted)' ? 'grp-BN'
-                   : grp === 'C' ? 'grp-C' : '';
-    const chipClass = grp === 'A' ? 'chip-A'
-                    : grp === 'B (Gazetted)' ? 'chip-BG'
-                    : grp === 'B (Non Gazetted)' ? 'chip-BN'
-                    : grp === 'C' ? 'chip-C' : 'chip-BG';
-    const grpLabel  = grp === 'B (Gazetted)'     ? 'Grp B (Gaz)'
-                    : grp === 'B (Non Gazetted)'  ? 'Grp B (Non-Gaz)'
+    const di      = FILTERED_DATA.indexOf(r);
+    const isSel   = COMPARE_SELECTED === r;
+    const grp     = r.Group || '';
+    const grpClass = grp === 'A' ? 'grp-A' : grp === 'B (Gazetted)' ? 'grp-BG'
+                   : grp === 'B (Non Gazetted)' ? 'grp-BN' : grp === 'C' ? 'grp-C' : '';
+    const chipClass = grp === 'A' ? 'chip-A' : grp === 'B (Gazetted)' ? 'chip-BG'
+                    : grp === 'B (Non Gazetted)' ? 'chip-BN' : 'chip-C';
+    const grpLabel  = grp === 'B (Gazetted)' ? 'Grp B (Gaz)'
+                    : grp === 'B (Non Gazetted)' ? 'Grp B (Non-Gaz)'
                     : grp ? 'Grp ' + grp : '';
-
-    return `<div class="compare-result-card${isPinned ? ' pinned' : ''}${isSel ? ' selected' : ''} ${grpClass}"
-                 onclick="selectCadreCard(${di})" id="crc-${di}">
-      <button class="crc-pin-btn" onclick="togglePin(event,${di})"
-              title="${isPinned ? 'Unpin' : 'Pin for comparison'}">📌</button>
+    const isPinned = COMPARE_PINNED.includes(r);
+    const clickFn  = COMPARE_MODE === 'pin' ? `selectCadreCard(${di})` : `scrollToRichCard(${di})`;
+    return `<div class="compare-result-card${isSel ? ' selected' : ''}${isPinned ? ' pinned' : ''} ${grpClass}"
+                 onclick="${clickFn}" id="crc-${di}">
+      ${COMPARE_MODE === 'pin' ? `<button class="crc-pin-btn" onclick="togglePin(event,${di})" title="${isPinned ? 'Unpin' : 'Pin'}">📌</button>` : ''}
       <div class="crc-name">${r.CadreName || '—'}</div>
-      <div class="crc-dept" title="${r.Department}">${r.Department || ''}${r.Establishment ? ' · ' + r.Establishment : ''}</div>
+      <div class="crc-dept">${r.Department || ''}${r.Establishment ? ' · ' + r.Establishment : ''}</div>
       <div class="crc-chips">
         ${grpLabel ? `<span class="crc-chip ${chipClass}">${grpLabel}</span>` : ''}
         ${r.PayScale ? `<span class="crc-chip chip-pay">${r.PayScale}</span>` : ''}
       </div>
     </div>`;
   }).join('');
+
+  // Rich cards (right pane)
+  richGrid.innerHTML = results.slice(0, 60).map(r => renderRichCard(r)).join('');
+}
+
+function getGrpAccent(grp) {
+  return grp === 'A' ? 'accent-A' : grp === 'B (Gazetted)' ? 'accent-BG'
+       : grp === 'B (Non Gazetted)' ? 'accent-BN' : grp === 'C' ? 'accent-C' : '';
+}
+function getGrpBadgeClass(grp) {
+  return grp === 'A' ? 'crc-badge-A' : grp === 'B (Gazetted)' ? 'crc-badge-BG'
+       : grp === 'B (Non Gazetted)' ? 'crc-badge-BN' : 'crc-badge-C';
+}
+function getGrpLabel(grp) {
+  return grp === 'B (Gazetted)' ? 'Grp B (Gaz)' : grp === 'B (Non Gazetted)' ? 'Grp B (Non-Gaz)'
+       : grp ? 'Grp ' + grp : '';
+}
+function getRRChangeCls(s) {
+  if (!s || s === '—') return 'crc-ch-unknown';
+  const l = s.toLowerCase();
+  if (l.includes('no change')) return 'crc-ch-none';
+  if (l.includes('new')) return 'crc-ch-new';
+  return 'crc-ch-changed';
+}
+
+function renderRichCard(r) {
+  const di       = FILTERED_DATA.indexOf(r);
+  const grp      = r.Group || '';
+  const accent   = getGrpAccent(grp);
+  const badgeCls = getGrpBadgeClass(grp);
+  const grpLbl   = getGrpLabel(grp);
+  const chCls    = getRRChangeCls(r.RRChangeStatus);
+  const rrLinkHtml = r.RRLink
+    ? `<a href="${r.RRLink}" target="_blank" rel="noopener" class="crc-rr-link active" onclick="event.stopPropagation()">📄 View RR</a>`
+    : `<span class="crc-rr-link">RR link</span>`;
+  const bucket = r.ExamBucket
+    ? (r.ExamBucket.length > 28 ? r.ExamBucket.slice(0,28)+'…' : r.ExamBucket)
+    : '—';
+
+  return `<div class="crc-rich-card ${accent}" id="rich-crc-${di}" onclick="selectRichCard(${di})">
+    <div class="crc-rich-head">
+      <div class="crc-rich-name">${escC(r.CadreName || '—')}</div>
+      <div class="crc-rich-dept">${escC(r.Department || '')}${r.Establishment ? ' · ' + escC(r.Establishment) : ''}</div>
+      <div class="crc-rich-meta">
+        ${grpLbl ? `<span class="crc-badge ${badgeCls}">${grpLbl}</span>` : ''}
+        ${r.PayScale ? `<span class="crc-badge crc-badge-pay">${escC(r.PayScale)}</span>` : ''}
+      </div>
+      ${rrLinkHtml}
+    </div>
+    <div class="crc-rich-body">
+      <div class="crc-stat-row">
+        <div class="crc-stat-tile">
+          <div class="crc-stat-val">${escC(r.VacancyUpdated || '—')}</div>
+          <div class="crc-stat-lbl">Vacancies</div>
+        </div>
+        <div class="crc-stat-tile">
+          <div class="crc-stat-val">${escC(r.DRPosts || '—')}</div>
+          <div class="crc-stat-lbl">DR Posts</div>
+        </div>
+      </div>
+      <div class="crc-field">
+        <div class="crc-field-key">Exam Bucket</div>
+        <div class="crc-field-val">${escC(bucket)}</div>
+      </div>
+      <div class="crc-field">
+        <div class="crc-field-key">RR Change <span class="crc-ch-badge ${chCls}">${escC(r.RRChangeStatus || '—')}</span></div>
+      </div>
+      <hr class="crc-divider">
+      <div class="crc-field">
+        <div class="crc-field-key">Before (dept provided)</div>
+        <div class="crc-rr-box">${escC(r.RRBefore || '—')}</div>
+      </div>
+      <div class="crc-field" style="margin-top:7px">
+        <div class="crc-field-key">After reforms</div>
+        <div class="crc-rr-box after">${escC(r.RRAfter || '—')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function selectRichCard(di) {
+  // Highlight slim list item
+  document.querySelectorAll('.compare-result-card').forEach(el => el.classList.remove('selected'));
+  const slimEl = document.getElementById('crc-' + di);
+  if (slimEl) slimEl.classList.add('selected');
+  // Highlight rich card
+  document.querySelectorAll('.crc-rich-card').forEach(el => el.classList.remove('selected'));
+  const richEl = document.getElementById('rich-crc-' + di);
+  if (richEl) richEl.classList.add('selected');
+}
+
+function scrollToRichCard(di) {
+  selectRichCard(di);
+  const richEl = document.getElementById('rich-crc-' + di);
+  if (richEl) richEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function selectCadreCard(di) {
@@ -3288,15 +3531,23 @@ function selectCadreCard(di) {
   if (!r) return;
   COMPARE_SELECTED = r;
 
-  document.querySelectorAll('.compare-result-card').forEach(el => el.classList.remove('selected'));
-  const el = document.getElementById('crc-' + di);
-  if (el) el.classList.add('selected');
-
-  // hide summary, show detail
+  // In pin mode: show detail inside pin panels
+  if (COMPARE_MODE === 'pin') {
+    const pinSumm = document.getElementById('compare-summary-panel-pin');
+    if (pinSumm) pinSumm.style.display = 'none';
+    const pane = document.getElementById('compare-detail-content');
+    pane.style.display = 'block';
+    pane.innerHTML = renderSingleDetail(r, di);
+    return;
+  }
+  // Browse mode: hide summary/rich, show detail pane
   const summaryPanel = document.getElementById('compare-summary-panel');
   if (summaryPanel) summaryPanel.style.display = 'none';
+  const richPanel = document.getElementById('compare-rich-results');
+  if (richPanel) richPanel.style.display = 'none';
+  const detailPane = document.getElementById('compare-detail-pane');
+  detailPane.style.display = 'block';
   const pane = document.getElementById('compare-detail-content');
-  pane.style.display = 'block';
   pane.innerHTML = renderSingleDetail(r, di);
 }
 
@@ -3388,9 +3639,11 @@ function renderSearchSummary(results, q) {
   const panel = document.getElementById('compare-summary-panel');
   if (!panel) return;
 
-  // If detail pane is showing a cadre, don't overwrite it
-  const detail = document.getElementById('compare-detail-content');
-  if (detail && detail.style.display !== 'none') return;
+  // If detail pane is showing a cadre, don't overwrite summary
+  const detailPaneCheck = COMPARE_MODE === 'pin'
+    ? document.getElementById('compare-detail-content-pin')
+    : document.getElementById('compare-detail-pane');
+  if (detailPaneCheck && detailPaneCheck.style.display !== 'none') return;
 
   if (!results || !results.length) {
     panel.style.display = 'block';
@@ -3523,8 +3776,10 @@ function unpinAt(i) {
 function showCompareTable() {
   if (COMPARE_PINNED.length < 2) return;
 
-  const summaryPanel = document.getElementById('compare-summary-panel');
-  if (summaryPanel) summaryPanel.style.display = 'none';
+  const pinSumm = document.getElementById('compare-summary-panel-pin');
+  if (pinSumm) pinSumm.style.display = 'none';
+  const detailPane = document.getElementById('compare-detail-pane');
+  if (detailPane) detailPane.style.display = 'block';
   const pane = document.getElementById('compare-detail-content');
   pane.style.display = 'block';
 
@@ -3597,11 +3852,26 @@ function showCompareTable() {
 }
 
 function closeCompareView() {
-  document.getElementById('compare-detail-content').style.display = 'none';
-  const summaryPanel = document.getElementById('compare-summary-panel');
-  if (summaryPanel) summaryPanel.style.display = 'block';
+  const detailPane = document.getElementById('compare-detail-pane');
+  if (detailPane) detailPane.style.display = 'none';
+  const q = (document.getElementById('compare-search').value || '').trim();
+  if (COMPARE_MODE === 'pin') {
+    const pinSumm = document.getElementById('compare-summary-panel-pin');
+    if (pinSumm) pinSumm.style.display = 'block';
+    const pane = document.getElementById('compare-detail-content');
+    if (pane) pane.style.display = 'none';
+  } else {
+    if (q) {
+      const richPanel = document.getElementById('compare-rich-results');
+      if (richPanel) richPanel.style.display = 'block';
+    } else {
+      const summaryPanel = document.getElementById('compare-summary-panel');
+      if (summaryPanel) summaryPanel.style.display = 'block';
+    }
+  }
   COMPARE_SELECTED = null;
   document.querySelectorAll('.compare-result-card').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.crc-rich-card').forEach(el => el.classList.remove('selected'));
 }
 
 // Init
